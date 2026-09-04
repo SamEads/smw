@@ -3,97 +3,60 @@
 #include <iostream>
 #include <unordered_map>
 #include <zlib.h>
-
 #include <json.hpp>
 
-#define GAME_WIDTH 320
-#define GAME_HEIGHT 240
-
-std::filesystem::path GetAssetDirectory(const std::filesystem::path& p)
-{
-	return std::filesystem::path("assets") / p;
-}
-
-class Sprite
-{
-private:
-	struct Frame
-	{
-		sf::IntRect rect;
-	};
-
-	struct Animation
-	{
-		int from;
-		int to;
-	};
-
-	std::unordered_map<std::string, Animation> animations;
-	std::vector<Frame> frames;
-
-	std::unique_ptr<sf::Texture> texture;
-	std::unique_ptr<sf::Sprite> sprite;
-
-	std::string animation;
-
-public:
-	float frame = 0.0f;
-
-public:
-	void load(const std::filesystem::path& png, const std::filesystem::path& json)
-	{
-		texture = std::make_unique<sf::Texture>(GetAssetDirectory(png));
-		sprite = std::make_unique<sf::Sprite>(*texture.get());
-
-		std::ifstream f(GetAssetDirectory(json));
-		nlohmann::ordered_json data = nlohmann::ordered_json::parse(f);
-
-		for (auto& t : data["frames"])
-		{
-			Frame f;
-			f.rect.position = { t["frame"]["x"].get<int>(), t["frame"]["y"].get<int>() };
-			f.rect.size = { t["frame"]["w"].get<int>(), t["frame"]["h"].get<int>() };
-			frames.push_back(f);
-		}
-
-		for (auto& t : data["meta"]["frameTags"])
-		{
-			std::string animName = t["name"].get<std::string>();
-			Animation& a = animations[animName];
-			a.from = t["from"].get<int>();
-			a.to = t["to"].get<int>();
-		}
-	}
-
-	void draw(sf::RenderTarget& target, float x, float y)
-	{
-		if (!sprite || !texture) return;
-
-		auto& animData = animations[animation];
-
-		int frameCount = animData.to - animData.from + 1;
-		float visFrame = animData.from + std::fmod(frame, frameCount);
-		sprite->setTextureRect(frames[visFrame].rect);
-		sprite->setPosition({ x, y });
-		target.draw(*sprite.get());
-	}
-
-	void setAnimation(const std::string& anim)
-	{
-		if (!sprite || !texture) return;
-		animation = anim;
-	}
-};
+#include "room.h"
+#include "sprite.h"
+#include "player.h"
+#include "enums.h"
+#include "assets.h"
 
 int main()
 {
-	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH, GAME_HEIGHT }), "SMW Engine 2026" );
+	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH * 3, GAME_HEIGHT * 3 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER" );
 	window.setFramerateLimit(60);
 	window.setVerticalSyncEnabled(true);
 
-	Sprite sprite;
-	sprite.load("sprites/luigi_small.png", "sprites/luigi_small.json");
-	sprite.setAnimation("walk");
+	sf::RenderTexture t({ GAME_WIDTH, GAME_HEIGHT });
+
+	std::ifstream i(GetAssetDirectory("levels/level0.tmj"));
+	nlohmann::json j = nlohmann::json::parse(i);
+
+	Room room;
+	for (auto& l : j["layers"])
+	{
+		if (l["type"] == "tilelayer")
+		{
+			TilemapLayer& layer = room.layers.emplace_back();
+			layer.width = l["width"].get<int>();
+			layer.height = l["height"].get<int>();
+			for (auto& c : l["chunks"])
+			{
+				TilemapLayerChunk& chunk = layer.chunks.emplace_back();
+				chunk.values = 	c["data"].get<std::vector<int>>();
+				chunk.x = 		c["x"].get<int>();
+				chunk.y = 		c["y"].get<int>();
+				chunk.width = 	c["width"].get<int>();
+				chunk.height =	c["height"].get<int>();
+			}
+		}
+		else if (l["name"] == "Collisions")
+		{
+			for (auto& c : l["objects"])
+			{
+				auto& collision = room.collisions.emplace_back();
+				collision.x = c["x"];
+				collision.y = c["y"];
+				collision.width = c["width"];
+				collision.height = c["height"];
+			}
+		}
+	}
+
+	room.player.sprite.load("sprites/luigi_small.png", "sprites/luigi_small.json");
+	room.player.sprite.setOrigin(16.0f, 32.0f);
+	room.player.x = 48;
+	room.player.y = 48;
 
 	while (window.isOpen())
 	{
@@ -105,15 +68,29 @@ int main()
 			}
 		}
 
-		sprite.frame += 0.2f;
+		room.step();
+
+		t.clear();
+		room.draw(t);
+		t.display();
+
+		const auto windowSize = window.getSize();
+        sf::View view(sf::FloatRect{ { 0, 0 }, { (float)windowSize.x, (float)windowSize.y } });
+        view.setCenter({ windowSize.x / 2.0f, windowSize.y / 2.0f });
+        window.setView(view);
 
 		window.clear();
-		sprite.setAnimation("walk");
-		sprite.draw(window, 0, 0);
-		sprite.setAnimation("jump");
-		sprite.draw(window, 32, 0);
-		sprite.setAnimation("fall");
-		sprite.draw(window, 64, 0);
+		sf::Sprite ss(t.getTexture());
+		float gameScaleX = windowSize.x / (float)GAME_WIDTH;
+		float gameScaleY = windowSize.y / (float)GAME_HEIGHT;
+		float gameScaleMin = std::min(gameScaleX, gameScaleY);
+		float flooredGameScaleMin = std::floorf(gameScaleMin);
+		if (flooredGameScaleMin != 0.0f)
+			gameScaleMin = flooredGameScaleMin;
+		ss.setScale({ gameScaleMin, gameScaleMin });
+		ss.setOrigin({ GAME_WIDTH / 2.0f, GAME_HEIGHT / 2.0f });
+		ss.setPosition({ std::floorf(windowSize.x / 2.0f), std::floorf(windowSize.y / 2.0f) });
+		window.draw(ss);
 		window.display();
 	}
 }
