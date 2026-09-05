@@ -39,10 +39,11 @@ void Sprite::draw(sf::RenderTarget& target, float x, float y)
     sprite->setTextureRect(frames[visFrame].rect);
     sprite->setPosition({ x, y });
     sprite->setOrigin(origin);
+    sprite->setScale({ (flipX) ? -1.0f : 1.0f, (flipY) ? -1.0f : 1.0f });
     target.draw(*sprite.get());
 }
 
-void Sprite::setAnimation(const std::string& anim)
+void Sprite::play(const std::string& anim)
 {
     if (!sprite) return;
     animation = anim;

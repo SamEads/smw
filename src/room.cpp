@@ -1,40 +1,23 @@
 #include "room.h"
 #include "enums.h"
+#include "mathhelper.h"
 #include "textures.h"
+#include<iostream>
 
 void Room::step()
 {
-    player.grav = 0.125f;
-    player.vspd += player.grav;
-    if (player.vspd > 4.0f)
+    player.step();   
+    camX = player.x - 128;
+
+    float width = 0.0f;
+    for (auto& l : layers)
     {
-        player.vspd = 4.0f;
-    }
-    player.x += player.hspd;
-    player.y += player.vspd;
-    for (auto& c : collisions)
-    {
-        sf::FloatRect floatRect({ c.x, c.y }, { c.width, c.height });
-        sf::FloatRect fakePlayer({ player.x - 5, player.y - 10 }, { 10, 10 });
-        auto test = floatRect.findIntersection(fakePlayer);
-        if (test.has_value())
+        if (l.width > width)
         {
-            sf::FloatRect intersection = test.value();
-            player.y = floatRect.position.y;
-            player.vspd = 0.0f;
+            width = l.width;
         }
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Right))
-    {
-        player.x += 1.5f;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::Left))
-    {
-        player.x -= 1.5f;
-    }
-    player.sprite.frame += 0.2f;
-    
-    camX = player.x - 128;
+    camX = MathHelper::clamp(camX, 0, (width * 16.0f) - GAME_WIDTH);
 }
 
 void Room::draw(sf::RenderTarget &target)
@@ -48,8 +31,13 @@ void Room::draw(sf::RenderTarget &target)
 	sf::Sprite tile(tileTexture);
 	int tilesX = tileTexture.getSize().x / 16;
 
+    int depth = 0;
     for (auto& l : layers)
     {
+        if (depth == 1)
+        {
+            player.sprite.draw(target, floorf(player.x), floorf(player.y) + 1);
+        }
         for (auto& c : l.chunks)
         {
             int startX = c.x * 16;
@@ -69,8 +57,10 @@ void Room::draw(sf::RenderTarget &target)
                 target.draw(tile);
             }
         }
+        depth++;
     }
 
+    /*
     for (auto& c : collisions)
     {
         sf::RectangleShape rs({ c.width - 2, c.height - 2 });
@@ -80,7 +70,6 @@ void Room::draw(sf::RenderTarget &target)
         rs.setOutlineThickness(1);
         target.draw(rs);
     }
+    */
 
-    player.sprite.setAnimation("walk");
-    player.sprite.draw(target, player.x, player.y + 1);
 }

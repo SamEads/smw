@@ -498,7 +498,7 @@
  },
  "meta": {
   "app": "http://www.aseprite.org/",
-  "version": "Chud",
+  "version": "1.3.18.3-6-gb9d291bff-dev",
   "image": "luigi_small.png",
   "format": "RGBA8888",
   "size": { "w": 256, "h": 256 },

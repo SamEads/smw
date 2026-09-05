@@ -26,10 +26,12 @@ private:
 
 public:
 	float frame = 0.0f;
+	bool flipX = false;
+	bool flipY = false;
 
 public:
 	void load(const std::filesystem::path& png, const std::filesystem::path& json);
 	void draw(sf::RenderTarget& target, float x, float y);
-	void setAnimation(const std::string& anim);
+	void play(const std::string& anim);
 	void setOrigin(float x, float y);
 };

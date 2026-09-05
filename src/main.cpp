@@ -10,6 +10,7 @@
 #include "player.h"
 #include "enums.h"
 #include "assets.h"
+#include "keys.h"
 
 int main()
 {
@@ -57,6 +58,7 @@ int main()
 	room.player.sprite.setOrigin(16.0f, 32.0f);
 	room.player.x = 48;
 	room.player.y = 48;
+	room.player.room = &room;
 
 	while (window.isOpen())
 	{
@@ -67,6 +69,7 @@ int main()
 				window.close();
 			}
 		}
+		Keys::update(window.hasFocus());
 
 		room.step();
 

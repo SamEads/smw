@@ -1,18 +1,21 @@
 {
-    "activeFile": "",
+    "activeFile": "maps/level0.tmx",
     "expandedProjectPaths": [
+        ".",
+        "tilesets",
+        "maps"
     ],
     "fileStates": {
         "maps/level0.tmx": {
-            "scale": 26.0953125,
+            "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 14.102149571881924,
-                "y": 10.174241063409376
+                "x": 1302.5,
+                "y": 105.25
             }
         },
         "tilesets/ground.tsx": {
-            "scaleInDock": 1,
+            "scaleInDock": 2,
             "scaleInEditor": 1
         }
     },
@@ -22,11 +25,12 @@
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
     "openFiles": [
+        "maps/level0.tmx"
     ],
     "project": "levels.tiled-project",
     "recentFiles": [
-        "tilesets/ground.tsx",
-        "maps/level0.tmx"
+        "maps/level0.tmx",
+        "tilesets/ground.tsx"
     ],
     "tileset.lastUsedFormat": "tsx"
 }
