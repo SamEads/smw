@@ -1,17 +1,26 @@
 {
     "activeFile": "maps/level0.tmx",
     "expandedProjectPaths": [
-        ".",
         "tilesets",
+        ".",
         "maps"
     ],
     "fileStates": {
+        ":/automap-tiles.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
         "maps/level0.tmx": {
-            "scale": 2,
-            "selectedLayer": 0,
+            "expandedGroupLayers": [
+                8,
+                7,
+                6
+            ],
+            "scale": 1.5,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 1302.5,
-                "y": 105.25
+                "x": 167,
+                "y": 112.99999999999997
             }
         },
         "tilesets/ground.tsx": {
@@ -28,8 +37,10 @@
         "maps/level0.tmx"
     ],
     "project": "levels.tiled-project",
+    "property.type": "int",
     "recentFiles": [
         "maps/level0.tmx",
+        ":/automap-tiles.tsx",
         "tilesets/ground.tsx"
     ],
     "tileset.lastUsedFormat": "tsx"

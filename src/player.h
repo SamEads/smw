@@ -27,6 +27,7 @@ private:
 	void handleSliding();
 	void handleFalling();
     void handleAnimation();
+    void handleSkidSmoke();
     void handleFloorAnimations();
     void handleAirAnimations();
 
@@ -129,10 +130,12 @@ public:
     // used for timing the flashing animation when the player goes owieee
     float flashCounter = 0.0f;
 
+    int smokeTimer = 0;
+
 	Sprite sprite;
 
 public:
-    void step();
+    void step() override;
     void draw(sf::RenderTarget& target) override;
 
 public:

@@ -11,10 +11,11 @@
 #include "enums.h"
 #include "assets.h"
 #include "keys.h"
+#include "font.h"
 
 int main()
 {
-	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH * 3, GAME_HEIGHT * 3 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER" );
+	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH, GAME_HEIGHT }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER" );
 	window.setFramerateLimit(60);
 	window.setVerticalSyncEnabled(true);
 
@@ -24,6 +25,46 @@ int main()
 	nlohmann::json j = nlohmann::json::parse(i);
 
 	Room room;
+
+	Font::SMALL.initialize("sprites/hud/small_font.png", 8, 8,
+	{
+		{ 'A', 0 },  { 'B', 1 },  { 'C', 2 },
+		{ 'D', 3 },  { 'E', 4 },  { 'F', 5 },
+		{ 'G', 6 },  { 'H', 7 },  { 'I', 8 },
+		{ 'J', 9 },  { 'K', 10 }, { 'L', 11 },
+		{ 'M', 12 }, { 'N', 13 }, { 'O', 14 },
+		{ 'P', 15 }, { 'Q', 16 }, { 'R', 17 },
+		{ 'S', 18 }, { 'T', 19 }, { 'U', 20 },
+		{ 'V', 21 }, { 'W', 22 }, { 'X', 23 },
+		{ 'Y', 24 }, { 'Z', 25 }, { '0', 26 },
+		{ '1', 27 }, { '2', 28 }, { '3', 29 },
+		{ '4', 30 }, { '5', 31 }, { '6', 32 },
+		{ '7', 33 }, { '8', 34 }, { '9', 35 },
+		{ '.', 36 }, { ',', 37 }, { '-', 38 },
+		{ '!', 39 }, { '=', 40 }, { ':', 41 },
+		{ '\'', 42 },{ '\"', 43 },{ 'x', 44 },
+	});
+	Font::POINTS.initialize("sprites/hud/points_font.png", 8, 16,
+	{
+		{ '0', 0 }, { '1', 1 }, { '2', 2 },
+		{ '3', 3 }, { '4', 4 }, { '5', 5 },
+		{ '6', 6 }, { '7', 7 }, { '8', 8 },
+		{ '9', 9 },
+	});
+
+	const std::string backgroundHex = j.value("backgroundcolor", "#000000FF");
+	std::string hex = backgroundHex[0] == '#' ? backgroundHex.substr(1) : backgroundHex;
+	if (hex.size() == 6)
+	{
+		hex += "FF";
+	}
+	const unsigned long colorValue = std::stoul(hex, nullptr, 16);
+	room.bgColor = sf::Color{
+		static_cast<std::uint8_t>((colorValue >> 24) & 0xFF),
+		static_cast<std::uint8_t>((colorValue >> 16) & 0xFF),
+		static_cast<std::uint8_t>((colorValue >> 8) & 0xFF),
+		static_cast<std::uint8_t>(colorValue & 0xFF)
+	};
 	for (auto& l : j["layers"])
 	{
 		if (l["type"] == "tilelayer")
@@ -44,7 +85,17 @@ int main()
 					room.width = chunk.width;
 				}
 			}
-			room.objects.push_back(std::move(layer));
+			if (l.contains("properties"))
+			{
+				for (auto& prop : l["properties"])
+				{
+					if (prop["name"] == "depth")
+					{
+						layer->depth = prop["value"].get<int>();
+					}
+				}
+			}
+			room.addObject(std::move(layer));
 		}
 		else if (l["name"] == "Collisions")
 		{
@@ -62,7 +113,7 @@ int main()
 	{
 		std::unique_ptr<Player> player = std::make_unique<Player>(&room);
 		room.player = player.get();
-		room.objects.push_back(std::move(player));
+		room.addObject(std::move(player));
 	}
 
 	while (window.isOpen())

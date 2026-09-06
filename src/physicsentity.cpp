@@ -54,6 +54,11 @@ void PhysicsEntity::move()
         );
 
         sf::FloatRect playerRect = collider;
+        if (oneWay)
+        {
+            playerRect.position.y += playerRect.size.y - 5;
+            playerRect.size.y = 5;
+        }
         playerRect.position += { x, y };
 
         auto hit = wall.findIntersection(playerRect);

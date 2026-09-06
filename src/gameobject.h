@@ -11,8 +11,11 @@ public:
 
 public:
     Room* room;
+    float x, y;
+    float xPrevious, yPrevious;
     int depth = 0;
 
 public:
+    virtual void step() {}
     virtual void draw(sf::RenderTarget& target) {}
 };

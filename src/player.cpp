@@ -65,6 +65,7 @@ void Player::step()
 	//  	# _handle_dying(delta)
 	
 	handleAnimation();
+    handleSkidSmoke();
 	
 	bool wasAtWall = isAtWall;
 		
@@ -318,6 +319,50 @@ void Player::handleAnimation()
 		handleFloorAnimations();
 	else
 		handleAirAnimations();
+}
+
+class Particle : public GameObject
+{
+public:
+    Particle(Room* room) : GameObject(room)
+    {
+
+    }
+
+public:
+    Sprite sprite;
+    
+public:
+    void step() override
+    {
+        sprite.frame += 0.2f;
+        if (sprite.frame >= sprite.getFrameCount())
+        {
+            room->queueFree(this);
+        }
+        y -= 0.2;
+    }
+    void draw(sf::RenderTarget& target) override
+    {
+        sprite.draw(target, x, y);
+    }
+};
+
+#include <iostream>
+void Player::handleSkidSmoke()
+{
+    if (smokeTimer++ == 4)
+    {
+        smokeTimer = 0;
+        if (isSlipperyLevel() || !isOnFloor) return;
+        if (!isHoldingBackwards() && !((ducking || sliding) && fabsf(hspd) > 0.2f)) return;
+        auto particle = std::make_unique<Particle>(room);
+        particle->sprite.load("sprites/smoke_small.png", "sprites/smoke_small.json");
+        particle->x = x;
+        particle->y = y;
+        particle->sprite.setOrigin(4, 4);
+        room->addObject(std::move(particle));
+    }
 }
 
 void Player::handleFloorAnimations()

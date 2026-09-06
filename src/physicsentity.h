@@ -9,7 +9,6 @@ public:
     PhysicsEntity(Room* room);
 
 public:
-    float x, y;
     float vspd = 0.0f, hspd = 0.0f;
     float grav = 0.0f;
     bool isAtWall = false;
