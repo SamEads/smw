@@ -18,8 +18,8 @@ public:
 	std::vector<Collision> collisions;
     std::vector<std::unique_ptr<GameObject>> objects;
 
-    float camX, camY;
-    int width, height;
+    float camX = 0, camY = 0;
+    int width = 0, height = 0;
 
     Player* player;
 
@@ -35,8 +35,9 @@ public:
     void queueFree(GameObject* gameObject);
 
 private:
-    int timerDecrementer;
+    int timerDecrementer = 0;
     float internalCamX = 0;
+    float internalCamY = 0;
     std::vector<GameObject*> queuedFree;
     std::vector<std::unique_ptr<GameObject>> queuedAdd;
 };

@@ -6,7 +6,7 @@
 #include "player.h"
 #include "font.h"
 #include "assets.h"
-#include<iostream>
+
 Room::Room()
 {
     timerDecrementer = 45;
@@ -14,6 +14,8 @@ Room::Room()
 }
 
 int x_side = 0;
+float destinationY = 0;
+bool followingDown = false;
 void Room::step()
 {
     timerDecrementer--;
@@ -58,17 +60,18 @@ void Room::step()
     else if (player->x > internalCamX + 40.0f)
         x_side = 1;
 
-    if (x_side == 1 && player->x > internalCamX - 16.0f)
+    constexpr float followDist = 14.0f;
+    if (x_side == 1 && player->x > internalCamX - followDist)
     {
         float spdmod = 0.0f;
 
         if (player->hspd > 0.0f)
             spdmod = std::abs(player->hspd);
 
-        if (player->x > internalCamX - (16.0f - 2.0f - spdmod))
+        if (player->x > internalCamX - (followDist - 2.0f - spdmod))
             internalCamX += 2.0f + player->hspd;
         else
-            internalCamX = player->x + 16.0f;
+            internalCamX = player->x + followDist;
 
         if (player->hspd == 0.0f)
             internalCamX += player->x - player->xPrevious;
@@ -80,19 +83,54 @@ void Room::step()
         if (player->hspd < 0.0f)
             spdmod = std::abs(player->hspd);
 
-        if (x_side == -1 && player->x < internalCamX + 16.0f)
+        if (x_side == -1 && player->x < internalCamX + followDist)
         {
-            if (player->x < internalCamX + (16.0f - 2.0f - spdmod))
+            if (player->x < internalCamX + (followDist - 2.0f - spdmod))
                 internalCamX -= 2.0f - player->hspd;
             else
-                internalCamX = player->x - 16.0f;
+                internalCamX = player->x - followDist;
         }
 
         if (player->hspd == 0.0f)
             internalCamX += player->x - player->xPrevious;
     }
 
+    if ((player->isOnFloor && player->vspd == 0.0f) ||
+        (player->jumping && player->isPMeterFull()))
+    {
+        destinationY = player->y;
+    }
+
+    if (destinationY < internalCamY && player->y <= internalCamY)
+    {
+        if (internalCamY > destinationY + 4.0f)
+            internalCamY -= 4.0f;
+        else
+            internalCamY = destinationY;
+    }
+    if (player->y > internalCamY + 32.0f && !followingDown)
+    {
+        if (player->vspd >= 0.0f)
+            followingDown = true;
+    }
+
+    if (followingDown)
+    {
+        destinationY = internalCamY;
+
+        if (player->vspd < 0.0f)
+        {
+            followingDown = false;
+        }
+        else
+        {
+            internalCamY = player->y - 32.0f;
+        }
+    }
+
+
     camX = MathHelper::clamp(internalCamX - 128, 0, width - GAME_WIDTH);
+    camY = MathHelper::clamp(internalCamY - 112, 0, height - GAME_HEIGHT);
 }
 
 void Room::draw(sf::RenderTarget &target)
@@ -150,7 +188,7 @@ void Room::draw(sf::RenderTarget &target)
     
     timeSpr.setPosition({ 152, 15 });
     target.draw(timeSpr);
-    Font::SMALL.draw(std::to_string(levelTime), target, 176, 23, sf::Color::White, Font::Alignment::RIGHT);
+    Font::SMALL.draw(std::to_string(levelTime), target, 176, 23, { 252, 220, 114 }, Font::Alignment::RIGHT);
 
     coinsSpr.setPosition({ 200, 15 });
     Font::SMALL.draw("x", target, 208, 15);
@@ -159,6 +197,9 @@ void Room::draw(sf::RenderTarget &target)
 
     // Score
     Font::SMALL.draw("0", target, 184 + (8 * 7), 23, sf::Color::White, Font::Alignment::RIGHT);
+
+    // Font::SMALL.draw(std::to_string((int)width) + "," + std::to_string((int)height), target, GAME_WIDTH - 4, 4,  sf::Color::White, Font::Alignment::RIGHT);
+    // Font::SMALL.draw(std::to_string((int)player->x) + "," + std::to_string((int)player->y), target, 4, 4);
 }
 
 void Room::addObject(std::unique_ptr<GameObject> gameObject)

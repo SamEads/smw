@@ -1,6 +1,7 @@
 #include "player.h"
 #include "room.h"
 #include "keys.h"
+#include "sound.h"
 #include "mathhelper.h"
 
 #define FIX (1.0f / 60.0f) *
@@ -85,9 +86,6 @@ void Player::step()
 	// since move&slide can change this
 	// hspd /= Slopes.horz_component(slope_type)
 	
-	float tmp = hspd;
-	// hspd = floor(hspd / 3.75f) * 3.75f;
-	
 	move();
 
     // temp barrier
@@ -99,7 +97,6 @@ void Player::step()
         walkingAgainstWall = true;
     }
 	
-	hspd = tmp;
 	// hspd *= Slopes.horz_component(slope_type)
 	
 	walkingAgainstWall = (isAtWall || wasAtWall) && direction != 0;
@@ -198,6 +195,11 @@ void Player::handleWalking()
         return;
     }
 
+    if (fabsf(hspd) >= fabsf(maxSpd) && !isHoldingBackwards())
+    {
+        return;
+    }
+
     if (isHoldingBackwards())
     {
         decelerate(decel);
@@ -249,6 +251,14 @@ void Player::handleLookingUp()
 
 void Player::handleJumping()
 {
+    if (!spinJumping && !isOnFloor && !jumpingWithFullPMeter)
+    {
+        if (!Sound::isPlaying("sounds/scuttle.wav"))
+        {
+            Sound::play("sounds/scuttle.wav", MathHelper::randomFloat(0.9f, 1.0f), MathHelper::choose(0.9, 1.0, 1.1));
+        }
+    }
+
 	if (isOnFloor)
     {
 		consecutiveBounces = 0;
@@ -279,10 +289,12 @@ void Player::handleJumping()
 	if (Keys::pressed(sf::Keyboard::Scancode::C))
     {
 		spinJumping = true;
+        Sound::play("sounds/spin.wav");
 		// AudioManager.play_sfx(AudioManager.SoundEffect.SPIN_JUMP);
     }
 	else
     {
+        Sound::play("sounds/jump.wav");
 		// AudioManager.play_sfx(AudioManager.SoundEffect.JUMP);
     }
 		
@@ -348,7 +360,6 @@ public:
     }
 };
 
-#include <iostream>
 void Player::handleSkidSmoke()
 {
     if (smokeTimer++ == 4)
@@ -399,7 +410,7 @@ void Player::handleFloorAnimations()
     }
     else
     {
-        sprite.frame += MathHelper::max(0.125f, fabsf(hspd) * 0.125f);
+        sprite.frame += MathHelper::max(0.125f, fabsf(hspd) * 0.15f);
     }
 }
 

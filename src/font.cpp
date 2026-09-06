@@ -15,10 +15,10 @@ void Font::initialize(std::filesystem::path sprite, int charWidth, int charHeigh
     this->sprite->setTextureRect({ { 0, 0 }, { charWidth, charHeight } });
 }
 
-#include <iostream>
 void Font::draw(const std::string &text, sf::RenderTarget &target, float x, float y, sf::Color color, Alignment alignment)
 {
     sf::Sprite& sprite = *this->sprite.get();
+    sprite.setColor(color);
 
     sf::IntRect rect = sprite.getTextureRect();
 

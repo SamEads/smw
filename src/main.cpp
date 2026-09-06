@@ -1,6 +1,6 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio/PlaybackDevice.hpp>
 #include <fstream>
-#include <iostream>
 #include <unordered_map>
 #include <zlib.h>
 #include <json.hpp>
@@ -11,17 +11,20 @@
 #include "enums.h"
 #include "assets.h"
 #include "keys.h"
+#include "backgroundlayer.h"
 #include "font.h"
 
 int main()
 {
-	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH, GAME_HEIGHT }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER" );
+	bool _soundInitResult = sf::PlaybackDevice::setDeviceToDefault();
+	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH * 3, GAME_HEIGHT * 3 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER" );
 	window.setFramerateLimit(60);
 	window.setVerticalSyncEnabled(true);
 
 	sf::RenderTexture t({ GAME_WIDTH, GAME_HEIGHT });
 
-	std::ifstream i(GetAssetDirectory("levels/level0.tmj"));
+	auto levelPath = GetAssetDirectory("levels/level0.tmj");
+	std::ifstream i(levelPath);
 	nlohmann::json j = nlohmann::json::parse(i);
 
 	Room room;
@@ -80,9 +83,45 @@ int main()
 				chunk.y = 		c["y"].get<int>();
 				chunk.width = 	c["width"].get<int>();
 				chunk.height =	c["height"].get<int>();
-				if (chunk.width > room.width)
+				float chunkRight = (chunk.x + chunk.width) * 16;
+				if (chunkRight > room.width)
 				{
-					room.width = chunk.width;
+					// find true height
+					bool found = false;
+					for (int xx = chunk.width - 1; xx >= 0; --xx)
+					{
+						if (found) break;
+						for (int yy = 0; yy < chunk.height; ++yy)
+						{
+							int dataAt = chunk.values[xx + (yy * chunk.width)];
+							if (dataAt != 0)
+							{
+								room.width = (chunk.x + xx + 1) * 16;
+								found = true;
+								break;
+							}
+						}
+					}
+				}
+				float chunkBottom = (chunk.y + chunk.height) * 16;
+				if (chunkBottom > room.height)
+				{
+					// find true height
+					bool found = false;
+					for (int yy = chunk.height - 1; yy >= 0; --yy)
+					{
+						if (found) break;
+						for (int xx = 0; xx < chunk.width; ++xx)
+						{
+							int dataAt = chunk.values[xx + (yy * chunk.width)];
+							if (dataAt != 0)
+							{
+								room.height = (chunk.y + yy + 1) * 16;
+								found = true;
+								break;
+							}
+						}
+					}
 				}
 			}
 			if (l.contains("properties"))
@@ -107,6 +146,26 @@ int main()
 				collision.width = c["width"];
 				collision.height = c["height"];
 			}
+		}
+		else if (l["type"] == "imagelayer")
+		{
+			std::filesystem::path imgPath = std::filesystem::path("levels") / l["image"].get<std::string>();
+			std::unique_ptr<BackgroundLayer> bg = std::make_unique<BackgroundLayer>(&room, imgPath);
+			if (l.contains("parallaxx")) bg->parallaxX = l["parallaxx"];
+			if (l.contains("parallaxy")) bg->parallaxY = l["parallaxy"];
+			if (l.contains("x")) bg->x = l["x"];
+			if (l.contains("y")) bg->y = l["y"];
+			if (l.contains("properties"))
+			{
+				for (auto& prop : l["properties"])
+				{
+					if (prop["name"] == "depth")
+					{
+						bg->depth = prop["value"].get<int>();
+					}
+				}
+			}
+			room.addObject(std::move(bg));
 		}
 	}
 

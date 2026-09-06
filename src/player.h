@@ -131,6 +131,7 @@ public:
     float flashCounter = 0.0f;
 
     int smokeTimer = 0;
+    int scuttleTimer = 0;
 
 	Sprite sprite;
 

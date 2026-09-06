@@ -1,5 +1,12 @@
 #include <cmath>
+#include <random>
 #include "mathhelper.h"
+
+std::mt19937& MathHelper::randomEngine()
+{
+    static std::mt19937 engine(std::random_device{}());
+    return engine;
+}
 
 float MathHelper::clamp(float v, float min, float max)
 {
@@ -24,4 +31,22 @@ float MathHelper::moveToward(float from, float to, float delta)
         return std::min(from + delta, to);
     else
         return std::max(from - delta, to);
+}
+
+int MathHelper::randomRange(int min, int max)
+{
+    if (min > max)
+        std::swap(min, max);
+
+    std::uniform_int_distribution<int> distribution(min, max);
+    return distribution(randomEngine());
+}
+
+float MathHelper::randomFloat(float min, float max)
+{
+    if (min > max)
+        std::swap(min, max);
+
+    std::uniform_real_distribution<float> distribution(min, max);
+    return distribution(randomEngine());
 }

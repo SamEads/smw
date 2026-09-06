@@ -21,7 +21,6 @@ void PhysicsEntity::move()
         sf::FloatRect playerRect = collider;
         playerRect.position += { x, y };
 
-
         auto hit = wall.findIntersection(playerRect);
 
         if (hit.has_value())
