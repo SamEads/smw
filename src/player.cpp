@@ -31,7 +31,17 @@ constexpr float JUMP_SPEED_INCREASE         = 0.15625f;
 constexpr float GRAVITY                     = 0.375f;
 constexpr float GRAVITY_JUMP                = 0.1875f;
 
-constexpr float SPIN_JUMP_SPEED_INCREASE    = FIX 8.617875; // ??>??
+constexpr float SPIN_JUMP_SPEED_INCREASE    = FIX 8.617875;
+
+Player::Player(Room *room) : PhysicsEntity(room)
+{
+    sprite.load("sprites/luigi_small.png", "sprites/luigi_small.json");
+    sprite.setOrigin(16.0f, 32.0f);
+    x = 48;
+    y = 48;
+
+    collider = sf::FloatRect({ -4.0f, -12.0f }, { 8.0f, 12.0f });
+}
 
 void Player::step()
 {
@@ -77,7 +87,7 @@ void Player::step()
 	float tmp = hspd;
 	// hspd = floor(hspd / 3.75f) * 3.75f;
 	
-	moveAndSlide();
+	move();
 
     // temp barrier
 	if (x < 8)
@@ -92,6 +102,11 @@ void Player::step()
 	// hspd *= Slopes.horz_component(slope_type)
 	
 	walkingAgainstWall = (isAtWall || wasAtWall) && direction != 0;
+}
+
+void Player::draw(sf::RenderTarget &target)
+{
+    sprite.draw(target, std::floorf(x), std::floorf(y) + 1.0f);
 }
 
 bool Player::isPMeterFull()
@@ -329,7 +344,10 @@ void Player::handleFloorAnimations()
 		sprite.play("walk");
     }
 	else
+    {
 		sprite.play("run");
+    }
+
     if (walkingAgainstWall)
     {
         sprite.frame += 0.125f;
@@ -368,91 +386,6 @@ void Player::handleAirAnimations()
     }
     sprite.play("fall");
     sprite.frame += 0.3f;
-}
-
-void Player::moveAndSlide()
-{
-    isOnFloor = false;
-    isAtWall = false;
-
-    x += hspd;
-    for (auto& c : room->collisions)
-    {
-        sf::FloatRect wall(
-            { c.x, c.y },
-            { c.width, c.height }
-        );
-
-        sf::FloatRect playerRect(
-            { x - 5, y - 10 },
-            { 10, 10 }
-        );
-
-        auto hit = wall.findIntersection(playerRect);
-
-        if (hit.has_value())
-        {
-            if (hspd > 0.0f)
-            {
-                // moving right
-                x = c.x - 5;
-            }
-            else if (hspd < 0.0f)
-            {
-                // moving left
-                x = c.x + c.width + 5;
-            }
-
-            hspd = 0.0f;
-            isAtWall = true;
-        }
-    }
-
-    y += vspd;
-
-    for (auto& c : room->collisions)
-    {
-        bool oneWay = c.height <= 2.0f;
-        float colHeight = oneWay ? 5.0f : c.height;
-        sf::FloatRect wall(
-            { c.x, c.y },
-            { c.width, colHeight }
-        );
-
-        sf::FloatRect playerRect(
-            { x - 5, y - 10 },
-            { 10, 10 }
-        );
-
-        auto hit = wall.findIntersection(playerRect);
-
-        if (hit.has_value())
-        {
-            if (oneWay)
-            {
-                if (vspd >= 0.0f)
-                {
-                    y = c.y;
-                    vspd = 0.0f;
-                    isOnFloor = true;
-                }
-                continue;
-            }
-            if (vspd > 0.0f)
-            {
-                // falling
-                y = c.y; // because bottom of player is player.y
-                isOnFloor = true;
-            }
-            else if (vspd < 0.0f)
-            {
-                // moving upward
-                y = c.y + c.height + 10;
-            }
-
-            vspd = 0.0f;
-        }
-    }
 }
 
 bool Player::isSlipperyLevel()

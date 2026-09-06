@@ -28,18 +28,23 @@ int main()
 	{
 		if (l["type"] == "tilelayer")
 		{
-			TilemapLayer& layer = room.layers.emplace_back();
-			layer.width = l["width"].get<int>();
-			layer.height = l["height"].get<int>();
+			std::unique_ptr<TilemapLayer> layer = std::make_unique<TilemapLayer>(&room);
+			layer->width = l["width"].get<int>();
+			layer->height = l["height"].get<int>();
 			for (auto& c : l["chunks"])
 			{
-				TilemapLayerChunk& chunk = layer.chunks.emplace_back();
+				TilemapLayerChunk& chunk = layer->chunks.emplace_back();
 				chunk.values = 	c["data"].get<std::vector<int>>();
 				chunk.x = 		c["x"].get<int>();
 				chunk.y = 		c["y"].get<int>();
 				chunk.width = 	c["width"].get<int>();
 				chunk.height =	c["height"].get<int>();
+				if (chunk.width > room.width)
+				{
+					room.width = chunk.width;
+				}
 			}
+			room.objects.push_back(std::move(layer));
 		}
 		else if (l["name"] == "Collisions")
 		{
@@ -54,11 +59,11 @@ int main()
 		}
 	}
 
-	room.player.sprite.load("sprites/luigi_small.png", "sprites/luigi_small.json");
-	room.player.sprite.setOrigin(16.0f, 32.0f);
-	room.player.x = 48;
-	room.player.y = 48;
-	room.player.room = &room;
+	{
+		std::unique_ptr<Player> player = std::make_unique<Player>(&room);
+		room.player = player.get();
+		room.objects.push_back(std::move(player));
+	}
 
 	while (window.isOpen())
 	{

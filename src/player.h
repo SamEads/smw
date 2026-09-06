@@ -1,8 +1,8 @@
 #pragma once
 
+#include "physicsentity.h"
 #include "sprite.h"
-
-class Room;
+#include "slopes.h"
 
 enum class PowerupState
 {
@@ -10,21 +10,11 @@ enum class PowerupState
     BIG
 };
 
-enum class SlopeType
+class Player : public PhysicsEntity
 {
-    NONE,
-    GRADUAL_LEFT,
-    GRADUAL_RIGHT,
-    NORMAL_LEFT,
-    NORMAL_RIGHT,
-    STEEP_LEFT,
-    STEEP_RIGHT,
-    VERY_STEEP_LEFT,
-    VERY_STEEP_RIGHT
-};
+public:
+    Player(Room* room);
 
-class Player
-{
 private:
     void handleDirection();
 	void handleSlopes();
@@ -39,19 +29,20 @@ private:
     void handleAnimation();
     void handleFloorAnimations();
     void handleAirAnimations();
-    void moveAndSlide();
 
 private:
     bool isSlipperyLevel();
-    bool isOnSlope();
     bool duckingOnFloor();
+    bool isHoldingBackwards();
+    bool isHoldingForwards();
     bool runButtonHeld();
     float getMaxSpeed();
     float getBaseAccel();
     float getBaseDecel();
     float getJumpSpeed();
-    bool isHoldingBackwards();
-    bool isHoldingForwards();
+
+private:
+    bool isOnSlope();
     int getSlopeDirection();
     float getSlopeSlideSpeed();
     float getSlopeAutoWalkSpeed();
@@ -67,13 +58,6 @@ private:
     void decelerate(float baseDecel);
 
 public:
-    Room* room;
-    float x, y;
-    float vspd = 0.0f, hspd = 0.0f;
-    float grav = 0.0f;
-    bool isAtWall = false;
-    bool isOnFloor = false;
-
     // current powerup
     PowerupState powerup = PowerupState::SMALL;
 
@@ -149,6 +133,7 @@ public:
 
 public:
     void step();
+    void draw(sf::RenderTarget& target) override;
 
 public:
     bool isPMeterFull();
