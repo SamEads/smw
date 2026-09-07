@@ -12,15 +12,15 @@
         },
         "maps/level0.tmx": {
             "expandedGroupLayers": [
+                6,
                 8,
-                7,
-                6
+                7
             ],
             "scale": 1.5,
-            "selectedLayer": 3,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 167,
-                "y": 112.99999999999997
+                "x": 270.33333333333337,
+                "y": 393.66666666666663
             }
         },
         "maps/player.tsx": {
@@ -32,7 +32,7 @@
             "scaleInEditor": 1
         },
         "tilesets/player.tsx": {
-            "scaleInDock": 1,
+            "scaleInDock": 2,
             "scaleInEditor": 1
         }
     },
@@ -42,14 +42,15 @@
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "tmx",
     "openFiles": [
-        "maps/level0.tmx"
+        "maps/level0.tmx",
+        "tilesets/player.tsx"
     ],
     "project": "levels.tiled-project",
     "property.type": "int",
     "recentFiles": [
         "tilesets/player.tsx",
-        "maps/player.tsx",
         "maps/level0.tmx",
+        "maps/player.tsx",
         ":/automap-tiles.tsx",
         "tilesets/ground.tsx"
     ],

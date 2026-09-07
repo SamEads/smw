@@ -159,6 +159,24 @@ void Room::draw(sf::RenderTarget &target)
         obj->draw(target);
     }
 
+    for (const auto& collision : collisions)
+    {
+        if (collision.shape == CollisionShape::Rectangle || collision.points.size() < 2)
+            continue;
+
+        size_t edgeCount = collision.shape == CollisionShape::Polygon ?
+            collision.points.size() : collision.points.size() - 1;
+        sf::VertexArray lines(sf::PrimitiveType::Lines, edgeCount * 2);
+        for (size_t index = 0; index < edgeCount; ++index)
+        {
+            lines[index * 2].position = collision.points[index];
+            lines[index * 2 + 1].position = collision.points[(index + 1) % collision.points.size()];
+            lines[index * 2].color = sf::Color::Red;
+            lines[index * 2 + 1].color = sf::Color::Red;
+        }
+        target.draw(lines);
+    }
+
     sf::View hudView(sf::FloatRect{ { 0, 0 }, { (float)GAME_WIDTH, (float)GAME_HEIGHT } });
     target.setView(hudView);
 

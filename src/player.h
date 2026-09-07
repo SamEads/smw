@@ -141,4 +141,7 @@ public:
 
 public:
     bool isPMeterFull();
+
+protected:
+    void onCeilingHit() override;
 };

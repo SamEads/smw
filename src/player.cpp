@@ -2,9 +2,11 @@
 #include "room.h"
 #include "keys.h"
 #include "sound.h"
+#include "particles/skidsmoke.h"
 #include "mathhelper.h"
 
 #define FIX (1.0f / 60.0f) *
+#define ACCEL (1.0f / 3600.0f) *
 
 constexpr float WALK_SPEED                  = 1.25f;
 constexpr float RUN_SPEED                   = 2.25f;
@@ -33,6 +35,10 @@ constexpr float GRAVITY                     = 0.375f;
 constexpr float GRAVITY_JUMP                = 0.1875f;
 
 constexpr float SPIN_JUMP_SPEED_INCREASE    = FIX 8.617875;
+
+constexpr float SLOPE_GRADUAL_LIMIT         = 20.0f * 3.14159265f / 180.0f;
+constexpr float SLOPE_NORMAL_LIMIT          = 30.0f * 3.14159265f / 180.0f;
+constexpr float SLOPE_STEEP_LIMIT           = 55.0f * 3.14159265f / 180.0f;
 
 Player::Player(Room *room) : PhysicsEntity(room)
 {
@@ -105,6 +111,20 @@ void Player::step()
 void Player::draw(sf::RenderTarget &target)
 {
     sprite.draw(target, std::floorf(x), std::floorf(y) + 1.0f);
+
+    //sf::CircleShape feetMarker(2.0f);
+    //feetMarker.setOrigin({ 2.0f, 2.0f });
+    //feetMarker.setPosition({
+    //    x + collider.position.x + collider.size.x * 0.5f,
+    //    y + collider.position.y + collider.size.y
+    //});
+    //feetMarker.setFillColor(sf::Color::Blue);
+    //target.draw(feetMarker);
+}
+
+void Player::onCeilingHit()
+{
+    Sound::play("sounds/bump.wav");
 }
 
 bool Player::isPMeterFull()
@@ -133,7 +153,24 @@ void Player::handleDirection()
 
 void Player::handleSlopes()
 {
-    // TODO: Slopes
+    if (!isOnFloor || !isOnSlopeSurface)
+    {
+        onSlopeType = SlopeType::NONE;
+        return;
+    }
+
+    float angle = fabsf(slopeAngle);
+    bool slopesDownRight = slopeAngle > 0.0f;
+    if (angle < 8.0f * 3.14159265f / 180.0f)
+        onSlopeType = SlopeType::NONE;
+    else if (angle < SLOPE_GRADUAL_LIMIT)
+        onSlopeType = slopesDownRight ? SlopeType::GRADUAL_RIGHT : SlopeType::GRADUAL_LEFT;
+    else if (angle < SLOPE_NORMAL_LIMIT)
+        onSlopeType = slopesDownRight ? SlopeType::NORMAL_RIGHT : SlopeType::NORMAL_LEFT;
+    else if (angle < SLOPE_STEEP_LIMIT)
+        onSlopeType = slopesDownRight ? SlopeType::STEEP_RIGHT : SlopeType::STEEP_LEFT;
+    else
+        onSlopeType = slopesDownRight ? SlopeType::VERY_STEEP_RIGHT : SlopeType::VERY_STEEP_LEFT;
 }
 
 void Player::handlePMeter()
@@ -195,11 +232,6 @@ void Player::handleWalking()
         return;
     }
 
-    if (fabsf(hspd) >= fabsf(maxSpd) && !isHoldingBackwards())
-    {
-        return;
-    }
-
     if (isHoldingBackwards())
     {
         decelerate(decel);
@@ -251,7 +283,8 @@ void Player::handleLookingUp()
 
 void Player::handleJumping()
 {
-    if (!spinJumping && !isOnFloor && !jumpingWithFullPMeter)
+    if (!spinJumping && !isOnFloor && airborneFrames > 0 &&
+        !jumpingWithFullPMeter && !sliding && !ducking)
     {
         if (!Sound::isPlaying("sounds/scuttle.wav"))
         {
@@ -286,7 +319,7 @@ void Player::handleJumping()
 		// running_jump_animation_timer.start()
     }
 	
-	if (Keys::pressed(sf::Keyboard::Scancode::C))
+	if (Keys::pressed(sf::Keyboard::Scancode::C) && !ducking)
     {
 		spinJumping = true;
         Sound::play("sounds/spin.wav");
@@ -303,7 +336,32 @@ void Player::handleJumping()
 
 void Player::handleSliding()
 {
+    bool onVerySteepSlope = onSlopeType == SlopeType::VERY_STEEP_LEFT ||
+        onSlopeType == SlopeType::VERY_STEEP_RIGHT;
 
+    if (direction != 0 || jumping || (sliding && hspd == 0.0f) ||
+        (!onVerySteepSlope && !doSlideAnimation))
+    {
+        sliding = false;
+    }
+
+    if (onVerySteepSlope)
+    {
+        if (!sliding)
+            doSlideAnimation = false;
+        if (Keys::held(sf::Keyboard::Scancode::Down))
+            doSlideAnimation = true;
+        sliding = true;
+    }
+    else if (isOnSlope() && direction == 0 &&
+        (Keys::held(sf::Keyboard::Scancode::Down) || sliding))
+    {
+        sliding = true;
+        doSlideAnimation = true;
+    }
+
+    if (sliding)
+        ducking = false;
 }
 
 void Player::handleFalling()
@@ -322,7 +380,7 @@ void Player::handleAnimation()
 		sprite.play("crouch");
 		return;
     }
-	if (sliding)
+    if (sliding && doSlideAnimation)
     {
 		sprite.play("slide");
 		return;
@@ -333,33 +391,6 @@ void Player::handleAnimation()
 		handleAirAnimations();
 }
 
-class Particle : public GameObject
-{
-public:
-    Particle(Room* room) : GameObject(room)
-    {
-
-    }
-
-public:
-    Sprite sprite;
-    
-public:
-    void step() override
-    {
-        sprite.frame += 0.2f;
-        if (sprite.frame >= sprite.getFrameCount())
-        {
-            room->queueFree(this);
-        }
-        y -= 0.2;
-    }
-    void draw(sf::RenderTarget& target) override
-    {
-        sprite.draw(target, x, y);
-    }
-};
-
 void Player::handleSkidSmoke()
 {
     if (smokeTimer++ == 4)
@@ -367,11 +398,9 @@ void Player::handleSkidSmoke()
         smokeTimer = 0;
         if (isSlipperyLevel() || !isOnFloor) return;
         if (!isHoldingBackwards() && !((ducking || sliding) && fabsf(hspd) > 0.2f)) return;
-        auto particle = std::make_unique<Particle>(room);
-        particle->sprite.load("sprites/smoke_small.png", "sprites/smoke_small.json");
-        particle->x = x;
+        auto particle = std::make_unique<SkidSmoke>(room);
+        particle->x = x + (-direction * 6);
         particle->y = y;
-        particle->sprite.setOrigin(4, 4);
         room->addObject(std::move(particle));
     }
 }
@@ -431,17 +460,17 @@ void Player::handleAirAnimations()
         else if (vspd < 0.0f)
         {
             sprite.play("jump");
-            sprite.frame += 0.3f;
+            sprite.frame += 0.375f;
         }
         else
         {
             sprite.play("fall");
-            sprite.frame += 0.3f;
+            sprite.frame += 0.375f;
         }
         return;
     }
     sprite.play("fall");
-    sprite.frame += 0.3f;
+    sprite.frame += 0.375f;
 }
 
 bool Player::isSlipperyLevel()
@@ -516,49 +545,194 @@ float Player::getJumpSpeed()
 
 int Player::getSlopeDirection()
 {
-    if (!isOnSlope()) return 0;
-    // TODO
-    return 0;
+    switch (onSlopeType)
+    {
+    case SlopeType::GRADUAL_LEFT:
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::VERY_STEEP_LEFT:
+        return -1;
+    case SlopeType::GRADUAL_RIGHT:
+    case SlopeType::NORMAL_RIGHT:
+    case SlopeType::STEEP_RIGHT:
+    case SlopeType::VERY_STEEP_RIGHT:
+        return 1;
+    default:
+        return 0;
+    }
 }
 
 float Player::getSlopeSlideSpeed()
 {
-    return 0.0f;
+    switch (onSlopeType)
+    {
+    case SlopeType::GRADUAL_LEFT:
+    case SlopeType::GRADUAL_RIGHT: return FIX 150.0f * getSlopeDirection();
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::NORMAL_RIGHT: return FIX 165.0f * getSlopeDirection();
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::STEEP_RIGHT: return FIX 180.0f * getSlopeDirection();
+    case SlopeType::VERY_STEEP_LEFT:
+    case SlopeType::VERY_STEEP_RIGHT: return FIX 120.0f * getSlopeDirection();
+    default: return 0.0f;
+    }
 }
 
 float Player::getSlopeAutoWalkSpeed()
 {
-    return 0.0f;
+    switch (onSlopeType)
+    {
+    case SlopeType::STEEP_LEFT: return FIX -60.0f;
+    case SlopeType::STEEP_RIGHT: return FIX 60.0f;
+    case SlopeType::VERY_STEEP_LEFT: return FIX -120.0f;
+    case SlopeType::VERY_STEEP_RIGHT: return FIX 120.0f;
+    default: return 0.0f;
+    }
 }
 
 float Player::getSlopeMaxSpeedModifier()
 {
-    return 0.0f;
+    int movingDirection = (hspd > 0.0f ? 1 : hspd < 0.0f ? -1 : 0) * getSlopeDirection();
+    switch (onSlopeType)
+    {
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::NORMAL_RIGHT:
+        if (movingDirection == -1) return FIX -15.0f;
+        return isPMeterFull() || runButtonHeld() ? 0.0f : FIX 7.5f;
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::STEEP_RIGHT:
+        if (movingDirection == -1) return isPMeterFull() ? FIX -30.0f :
+            runButtonHeld() ? FIX -30.0f : FIX -15.0f;
+        return isPMeterFull() || runButtonHeld() ? 0.0f : FIX 60.0f;
+    case SlopeType::VERY_STEEP_LEFT:
+    case SlopeType::VERY_STEEP_RIGHT:
+        if (movingDirection == -1) return isPMeterFull() ? FIX -195.0f :
+            runButtonHeld() ? FIX -165.0f : FIX -135.0f;
+        return isPMeterFull() || runButtonHeld() ? 0.0f : FIX 60.0f;
+    default:
+        return 0.0f;
+    }
 }
 
 float Player::getSlopeSlideAccel()
 {
-    return 0.0f;
+    switch (onSlopeType)
+    {
+    case SlopeType::GRADUAL_LEFT:
+    case SlopeType::GRADUAL_RIGHT: return ACCEL 112.5f;
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::NORMAL_RIGHT: return ACCEL 225.0f;
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::STEEP_RIGHT: return ACCEL 337.5f;
+    case SlopeType::VERY_STEEP_LEFT:
+    case SlopeType::VERY_STEEP_RIGHT: return ACCEL 562.5f;
+    default: return 0.0f;
+    }
 }
 
 float Player::getSlopeSlipperyAccel()
 {
-    return 0.0f;
+    int movingDirection = (hspd > 0.0f ? 1 : hspd < 0.0f ? -1 : 0) * getSlopeDirection();
+    switch (onSlopeType)
+    {
+    case SlopeType::GRADUAL_LEFT:
+    case SlopeType::NORMAL_LEFT: return movingDirection == -1 ? ACCEL -56.25f : ACCEL 28.125f;
+    case SlopeType::GRADUAL_RIGHT:
+    case SlopeType::NORMAL_RIGHT: return movingDirection == -1 ? ACCEL 56.25f : ACCEL -28.125f;
+    case SlopeType::STEEP_LEFT: return ACCEL 112.5f;
+    case SlopeType::STEEP_RIGHT: return movingDirection == -1 ? ACCEL 112.5f : ACCEL -28.125f;
+    case SlopeType::VERY_STEEP_LEFT: return ACCEL -450.0f;
+    case SlopeType::VERY_STEEP_RIGHT: return ACCEL 450.0f;
+    default: return 0.0f;
+    }
 }
 
 float Player::getSlopeAutoWalkAccelModifier()
 {
-    return 0.0f;
+    float autoWalkSpeed = getSlopeAutoWalkSpeed();
+    bool aboveAutoWalkSpeed = hspd == 0.0f ||
+        ((hspd > 0.0f) == (autoWalkSpeed > 0.0f) && fabsf(hspd) >= fabsf(autoWalkSpeed));
+    switch (onSlopeType)
+    {
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::NORMAL_RIGHT: return aboveAutoWalkSpeed ? ACCEL -56.25f : ACCEL 112.5f;
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::STEEP_RIGHT: return aboveAutoWalkSpeed ? ACCEL -168.75f : ACCEL 225.0f;
+    case SlopeType::VERY_STEEP_LEFT:
+    case SlopeType::VERY_STEEP_RIGHT: return aboveAutoWalkSpeed ? ACCEL -450.0f : ACCEL 675.0f;
+    default: return 0.0f;
+    }
 }
 
 float Player::getSlopeAccelModifier()
 {
-    return 0.0f;
+    int movingDirection = (hspd > 0.0f ? 1 : hspd < 0.0f ? -1 : 0) * getSlopeDirection();
+    if (isSlipperyLevel())
+    {
+        switch (onSlopeType)
+        {
+        case SlopeType::NORMAL_LEFT:
+        case SlopeType::NORMAL_RIGHT: return movingDirection == -1 ?
+            (runButtonHeld() ? ACCEL 56.25f : 0.0f) : (runButtonHeld() ? 0.0f : ACCEL 225.0f);
+        case SlopeType::STEEP_LEFT:
+        case SlopeType::STEEP_RIGHT: return movingDirection == -1 ?
+            (runButtonHeld() ? ACCEL -112.5f : 0.0f) : (runButtonHeld() ? 0.0f : ACCEL 225.0f);
+        case SlopeType::VERY_STEEP_LEFT:
+        case SlopeType::VERY_STEEP_RIGHT: return movingDirection == -1 ?
+            (runButtonHeld() ? ACCEL -1012.5f : ACCEL -787.5f) :
+            (runButtonHeld() ? ACCEL 562.5f : ACCEL 787.5f);
+        default: break;
+        }
+    }
+    switch (onSlopeType)
+    {
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::NORMAL_RIGHT: return movingDirection == -1 ? ACCEL -56.25f : 0.0f;
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::STEEP_RIGHT: return movingDirection == -1 ? ACCEL -112.5f : 0.0f;
+    case SlopeType::VERY_STEEP_LEFT:
+    case SlopeType::VERY_STEEP_RIGHT: return movingDirection == -1 ? ACCEL -1012.5f : ACCEL 562.5f;
+    default: return 0.0f;
+    }
 }
 
 float Player::getSlopeDecelModifier()
 {
-    return 0.0f;
+    int movingDirection = (hspd > 0.0f ? 1 : hspd < 0.0f ? -1 : 0) * getSlopeDirection();
+    if (isSlipperyLevel())
+    {
+        switch (onSlopeType)
+        {
+        case SlopeType::NORMAL_LEFT:
+        case SlopeType::NORMAL_RIGHT: return movingDirection == -1 ? ACCEL 56.25f :
+            (runButtonHeld() ? ACCEL -56.25f : 0.0f);
+        case SlopeType::STEEP_LEFT:
+        case SlopeType::STEEP_RIGHT: return movingDirection == -1 ?
+            (runButtonHeld() ? ACCEL 112.5f : ACCEL 618.75f) :
+            (runButtonHeld() ? ACCEL -112.5f : 0.0f);
+        case SlopeType::VERY_STEEP_LEFT:
+        case SlopeType::VERY_STEEP_RIGHT: return movingDirection == -1 ?
+            (runButtonHeld() ? ACCEL 112.5f : ACCEL 618.75f) :
+            (runButtonHeld() ? ACCEL -1237.5f : ACCEL -731.25f);
+        default: break;
+        }
+    }
+    switch (onSlopeType)
+    {
+    case SlopeType::NORMAL_LEFT:
+    case SlopeType::NORMAL_RIGHT: return movingDirection == -1 ?
+        (runButtonHeld() ? ACCEL 112.5f : ACCEL 56.25f) :
+        (runButtonHeld() ? ACCEL -112.5f : ACCEL -56.25f);
+    case SlopeType::STEEP_LEFT:
+    case SlopeType::STEEP_RIGHT: return movingDirection == -1 ?
+        (runButtonHeld() ? ACCEL 225.0f : ACCEL 112.5f) :
+        (runButtonHeld() ? ACCEL -225.0f : ACCEL -112.5f);
+    case SlopeType::VERY_STEEP_LEFT:
+    case SlopeType::VERY_STEEP_RIGHT: return movingDirection == -1 ?
+        (runButtonHeld() ? ACCEL 225.0f : ACCEL 112.5f) :
+        (runButtonHeld() ? ACCEL -2475.0f : ACCEL -1237.5f);
+    default: return 0.0f;
+    }
 }
 
 bool Player::isHoldingBackwards()

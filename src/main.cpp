@@ -143,8 +143,45 @@ int main()
 				auto& collision = room.collisions.emplace_back();
 				collision.x = c["x"];
 				collision.y = c["y"];
-				collision.width = c["width"];
-				collision.height = c["height"];
+				collision.width = c.value("width", 0.0f);
+				collision.height = c.value("height", 0.0f);
+				if (c.contains("polyline"))
+				{
+					collision.shape = CollisionShape::Polyline;
+					for (auto& point : c["polyline"])
+					{
+						collision.points.emplace_back(
+							collision.x + point["x"].get<float>(),
+							collision.y + point["y"].get<float>());
+					}
+				}
+				else if (c.contains("polygon"))
+				{
+					collision.shape = CollisionShape::Polygon;
+					for (auto& point : c["polygon"])
+					{
+						collision.points.emplace_back(
+							collision.x + point["x"].get<float>(),
+							collision.y + point["y"].get<float>());
+					}
+				}
+				else if (collision.width > 0.0f && collision.height > 0.0f)
+				{
+					collision.points = {
+						{ collision.x, collision.y },
+						{ collision.x + collision.width, collision.y },
+						{ collision.x + collision.width, collision.y + collision.height },
+						{ collision.x, collision.y + collision.height }
+					};
+				}
+				else if (collision.width > 0.0f)
+				{
+					collision.shape = CollisionShape::Polyline;
+					collision.points = {
+						{ collision.x, collision.y },
+						{ collision.x + collision.width, collision.y }
+					};
+				}
 			}
 		}
 		else if (l["type"] == "imagelayer")
