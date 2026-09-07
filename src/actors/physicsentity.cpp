@@ -38,13 +38,28 @@ PhysicsEntity::PhysicsEntity(Room *room) : GameObject(room)
 {
 }
 
+bool PhysicsEntity::getWorldBounds(sf::FloatRect& bounds) const
+{
+    bounds = collider;
+    bounds.position += { x, y };
+    return true;
+}
+
+bool PhysicsEntity::isAtWall() const { return atWall; }
+
+bool PhysicsEntity::isOnFloor() const { return onFloor; }
+
+bool PhysicsEntity::wasOnFloor() const { return previousFloor; }
+
+void PhysicsEntity::setAtWall() { atWall = true; }
+
 void PhysicsEntity::move()
 {
     float previousX = x;
     float previousY = y;
-    wasOnFloor = isOnFloor;
-    isOnFloor = false;
-    isAtWall = false;
+    previousFloor = onFloor;
+    onFloor = false;
+    atWall = false;
     isOnSlopeSurface = false;
     slopeAngle = 0.0f;
 
@@ -74,44 +89,58 @@ void PhysicsEntity::move()
                     {
                         x = first.x - collider.position.x - collider.size.x;
                         hspd = 0.0f;
-                        isAtWall = true;
+                        setAtWall();
                     }
                     else if (hspd < 0.0f && previousLeft >= first.x && currentLeft < first.x)
                     {
                         x = first.x - collider.position.x;
                         hspd = 0.0f;
-                        isAtWall = true;
+                        setAtWall();
                     }
                 }
             }
             continue;
         }
 
-        sf::FloatRect wall(
-            { c.x, c.y },
-            { c.width, c.height }
-        );
+        if (c.height <= 2.0f || hspd == 0.0f)
+            continue;
 
-        sf::FloatRect playerRect = collider;
-        playerRect.position += { x, y };
+        float previousLeft = previousX + collider.position.x;
+        float previousRight = previousLeft + collider.size.x;
+        float currentLeft = x + collider.position.x;
+        float currentRight = currentLeft + collider.size.x;
+        float previousTop = previousY + collider.position.y;
+        float previousBottom = previousTop + collider.size.y;
+        float currentTop = y + vspd + collider.position.y;
+        float currentBottom = currentTop + collider.size.y;
 
-        auto hit = wall.findIntersection(playerRect);
-
-        if (hit.has_value())
+        if (hspd > 0.0f && previousRight <= c.x && currentRight > c.x)
         {
-            if (hspd > 0.0f)
+            float contactTime = (c.x - previousRight) / (currentRight - previousRight);
+            float contactTop = previousTop + (currentTop - previousTop) * contactTime;
+            float contactBottom = previousBottom + (currentBottom - previousBottom) * contactTime;
+            bool approachingTop = contactTop < c.y &&
+                contactBottom <= c.y + ONE_WAY_TOLERANCE;
+            if (contactBottom > c.y && contactTop < c.y + c.height && !approachingTop)
             {
-                // moving right
-                x -= hit->size.x;
+                x = c.x - collider.position.x - collider.size.x;
+                hspd = 0.0f;
+                setAtWall();
             }
-            else if (hspd < 0.0f)
+        }
+        else if (hspd < 0.0f && previousLeft >= c.x + c.width && currentLeft < c.x + c.width)
+        {
+            float contactTime = (c.x + c.width - previousLeft) / (currentLeft - previousLeft);
+            float contactTop = previousTop + (currentTop - previousTop) * contactTime;
+            float contactBottom = previousBottom + (currentBottom - previousBottom) * contactTime;
+            bool approachingTop = contactTop < c.y &&
+                contactBottom <= c.y + ONE_WAY_TOLERANCE;
+            if (contactBottom > c.y && contactTop < c.y + c.height && !approachingTop)
             {
-                // moving left
-                x += hit->size.x;
+                x = c.x + c.width - collider.position.x;
+                hspd = 0.0f;
+                setAtWall();
             }
-
-            hspd = 0.0f;
-            isAtWall = true;
         }
     }
 
@@ -188,7 +217,7 @@ void PhysicsEntity::move()
                 {
                     y = currentFloor - collider.position.y - collider.size.y;
                     vspd = 0.0f;
-                    isOnFloor = true;
+                    onFloor = true;
                     for (size_t index = 0; index < edgeCount(c); ++index)
                     {
                         const auto& first = c.points[index];
@@ -243,7 +272,7 @@ void PhysicsEntity::move()
                 if (vspd >= 0.0f)
                 {
                     y -= hit->size.y;
-                    isOnFloor = true;
+                    onFloor = true;
                 }
                 if (vspd >= 0.0f)
                     vspd = 0.0f;
@@ -253,16 +282,22 @@ void PhysicsEntity::move()
             {
                 // falling
                 y -= hit->size.y;
-                isOnFloor = true;
-            }
-            // Solid rectangle tops are one-way from above: jumping upward
-            // does not get stopped by the horizontal surface.
-            if (vspd > 0.0f)
+                onFloor = true;
                 vspd = 0.0f;
+            }
+            else if (vspd < 0.0f &&
+                previousY + collider.position.y >= c.y + c.height &&
+                y + collider.position.y < c.y + c.height)
+            {
+                // Pass through the top, but collide with the underside.
+                y += hit->size.y;
+                vspd = 0.0f;
+                onCeilingHit();
+            }
         }
     }
 
-    if (!isOnFloor && wasOnFloor && vspd >= 0.0f)
+    if (!onFloor && previousFloor && vspd >= 0.0f)
     {
         float centerX = x + collider.position.x + collider.size.x * 0.5f;
         float feetY = y + collider.position.y + collider.size.y;
@@ -309,11 +344,11 @@ void PhysicsEntity::move()
         {
             y = supportY - collider.position.y - collider.size.y;
             vspd = 0.0f;
-            isOnFloor = true;
+            onFloor = true;
         }
     }
 
-    if (isOnFloor)
+    if (onFloor)
         airborneFrames = 0;
     else
         airborneFrames++;

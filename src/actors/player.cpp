@@ -2,8 +2,10 @@
 #include "room.h"
 #include "keys.h"
 #include "sound.h"
-#include "particles/skidsmoke.h"
+#include "skidsmoke.h"
 #include "mathhelper.h"
+
+#include <string>
 
 #define FIX (1.0f / 60.0f) *
 #define ACCEL (1.0f / 3600.0f) *
@@ -40,18 +42,24 @@ constexpr float SLOPE_GRADUAL_LIMIT         = 20.0f * 3.14159265f / 180.0f;
 constexpr float SLOPE_NORMAL_LIMIT          = 30.0f * 3.14159265f / 180.0f;
 constexpr float SLOPE_STEEP_LIMIT           = 55.0f * 3.14159265f / 180.0f;
 
-Player::Player(Room *room) : PhysicsEntity(room)
+Player::Player(Room *room, const Game& game) : PhysicsEntity(room)
 {
-    sprite.load("sprites/luigi_small.png", "sprites/luigi_small.json");
-    sprite.setOrigin(16.0f, 32.0f);
+    category = ObjectCategory::Player;
+    setCharacter(game.playerCharacter);
     x = 48;
     y = 48;
 
     collider = sf::FloatRect({ -4.0f, -12.0f }, { 8.0f, 12.0f });
 }
-
+#include <iostream>
 void Player::step()
 {
+    if (Keys::pressed(sf::Keyboard::Scancode::LShift))
+    {
+        setCharacter(character == PlayerCharacter::MARIO ?
+            PlayerCharacter::LUIGI : PlayerCharacter::MARIO);
+    }
+
     handleDirection();
 	handleSlopes();
 	handlePMeter();
@@ -74,38 +82,33 @@ void Player::step()
 	handleAnimation();
     handleSkidSmoke();
 	
-	bool wasAtWall = isAtWall;
-		
-	// cliffnote's of wye's note:
-	// before calling move_and_slide adjust the x speed if on a slope then readjust it afterwards
-	// in super mario world all speed calcs are done assuming mario's Xspd is how fast he moves
-	// along the x axis (purely horizontal) even on a slope
-	// however in godot, it's how fast he moves along the surfaec of the slope
-	// to make the speeds work here like in SMW we need to factor in how "horizontal" the slope is
-	
-	// do this right before and right after move and slide so all other calcs can be done normally
-	
-	// good thas an option - floor_constant_speed - that somewhat covers this issue but that would
-	// apparently change the default speeds on slopes n interfere with implementing smw values
-	
-	// so after move and slide rescale the value instead of restoring from a backup
-	// since move&slide can change this
-	// hspd /= Slopes.horz_component(slope_type)
-	
+    bool wasAtWall = isAtWall();
+
 	move();
 
-    // temp barrier
+    // left barrier
 	if (x < 8)
     {
 		x = 8;
 		hspd = 0;
-        isAtWall = true;
+        setAtWall();
         walkingAgainstWall = true;
     }
 	
-	// hspd *= Slopes.horz_component(slope_type)
-	
-	walkingAgainstWall = (isAtWall || wasAtWall) && direction != 0;
+    walkingAgainstWall = (isAtWall() || wasAtWall) && direction != 0;
+}
+
+void Player::setCharacter(PlayerCharacter newCharacter)
+{
+    character = newCharacter;
+    if (room->game)
+        room->game->playerCharacter = newCharacter;
+
+    const char* characterName = character == PlayerCharacter::MARIO ? "mario" : "luigi";
+    sprite.load(
+        std::string("sprites/") + characterName + "_small.png",
+        std::string("sprites/") + characterName + "_small.json");
+    sprite.setOrigin(16.0f, 32.0f);
 }
 
 void Player::draw(sf::RenderTarget &target)
@@ -153,7 +156,7 @@ void Player::handleDirection()
 
 void Player::handleSlopes()
 {
-    if (!isOnFloor || !isOnSlopeSurface)
+    if (!isOnFloor() || !isOnSlopeSurface)
     {
         onSlopeType = SlopeType::NONE;
         return;
@@ -177,7 +180,7 @@ void Player::handlePMeter()
 {
     if (fabsf(hspd) >= P_METER_START_SPEED)
     {
-        if (isOnFloor && runButtonHeld())
+        if (isOnFloor() && runButtonHeld())
         {
             p_meter += 2;
         }
@@ -200,7 +203,7 @@ void Player::handleWalking()
     float decel = getBaseDecel();
     float forceDecel = (isSlipperyLevel()) ? STOP_DECEL_SLIPPERY : STOP_DECEL;
 
-    if (!isOnFloor && direction == 0)
+    if (!isOnFloor() && direction == 0)
         return;
 
     if (isOnSlope() && (sliding || !isHoldingBackwards()))
@@ -238,7 +241,7 @@ void Player::handleWalking()
         return;
     }
 
-    if ((fabsf(hspd) >= fabsf(maxSpd)) && (isOnFloor || isHoldingForwards()))
+    if ((fabsf(hspd) >= fabsf(maxSpd)) && (isOnFloor() || isHoldingForwards()))
     {
         decelerate(forceDecel);
         return;
@@ -247,7 +250,7 @@ void Player::handleWalking()
 
 void Player::handleStopping()
 {
-    if (isAtWall)
+    if (isAtWall())
     {
         // todo...
         hspd = 0.0f;
@@ -256,7 +259,7 @@ void Player::handleStopping()
 
 void Player::handleDucking()
 {
-	if (!isOnFloor)
+    if (!isOnFloor())
 		return;
 	if (spinJumping || sliding || isOnSlope())
     {
@@ -271,7 +274,7 @@ void Player::handleDucking()
 
 void Player::handleLookingUp()
 {
-    if (!isOnFloor)
+    if (!isOnFloor())
     {
         lookingUp = false;
         return;
@@ -283,22 +286,25 @@ void Player::handleLookingUp()
 
 void Player::handleJumping()
 {
-    if (!spinJumping && !isOnFloor && airborneFrames > 0 &&
-        !jumpingWithFullPMeter && !sliding && !ducking)
+    if (character == PlayerCharacter::LUIGI)
     {
-        if (!Sound::isPlaying("sounds/scuttle.wav"))
+        if (!spinJumping && !isOnFloor() && airborneFrames > 0 &&
+            !jumpingWithFullPMeter && !sliding && !ducking)
         {
-            Sound::play("sounds/scuttle.wav", MathHelper::randomFloat(0.9f, 1.0f), MathHelper::choose(0.9, 1.0, 1.1));
+            if (!Sound::isPlaying("sounds/scuttle.wav"))
+            {
+                Sound::play("sounds/scuttle.wav", MathHelper::randomFloat(0.9f, 1.0f), MathHelper::choose(0.9, 1.0, 1.1));
+            }
         }
     }
 
-	if (isOnFloor)
+    if (isOnFloor())
     {
 		consecutiveBounces = 0;
 		inAirFromDiagonalPipe = false;
     }
 
-	if (!isOnFloor || !canJump)
+    if (!isOnFloor() || !canJump)
 		return;
 
 	if (!shouldKeepJumpState)
@@ -385,7 +391,7 @@ void Player::handleAnimation()
 		sprite.play("slide");
 		return;
     }
-	if (isOnFloor)
+    if (isOnFloor())
 		handleFloorAnimations();
 	else
 		handleAirAnimations();
@@ -396,7 +402,7 @@ void Player::handleSkidSmoke()
     if (smokeTimer++ == 4)
     {
         smokeTimer = 0;
-        if (isSlipperyLevel() || !isOnFloor) return;
+        if (isSlipperyLevel() || !isOnFloor()) return;
         if (!isHoldingBackwards() && !((ducking || sliding) && fabsf(hspd) > 0.2f)) return;
         auto particle = std::make_unique<SkidSmoke>(room);
         particle->x = x + (-direction * 6);
@@ -485,7 +491,7 @@ bool Player::isOnSlope()
 
 bool Player::duckingOnFloor()
 {
-    return ducking && isOnFloor;
+    return ducking && isOnFloor();
 }
 
 bool Player::runButtonHeld()

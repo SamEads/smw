@@ -1,18 +1,12 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio/PlaybackDevice.hpp>
-#include <fstream>
-#include <unordered_map>
-#include <zlib.h>
-#include <json.hpp>
 
-#include "room.h"
-#include "sprite.h"
-#include "player.h"
+#include "level.h"
 #include "enums.h"
 #include "assets.h"
 #include "keys.h"
-#include "backgroundlayer.h"
 #include "font.h"
+#include "game.h"
 
 int main()
 {
@@ -23,11 +17,8 @@ int main()
 
 	sf::RenderTexture t({ GAME_WIDTH, GAME_HEIGHT });
 
-	auto levelPath = GetAssetDirectory("levels/level0.tmj");
-	std::ifstream i(levelPath);
-	nlohmann::json j = nlohmann::json::parse(i);
-
-	Room room;
+	Game game;
+	Level level(GetAssetDirectory("levels/level0.tmj"), &game);
 
 	Font::SMALL.initialize("sprites/hud/small_font.png", 8, 8,
 	{
@@ -55,162 +46,7 @@ int main()
 		{ '9', 9 },
 	});
 
-	const std::string backgroundHex = j.value("backgroundcolor", "#000000FF");
-	std::string hex = backgroundHex[0] == '#' ? backgroundHex.substr(1) : backgroundHex;
-	if (hex.size() == 6)
-	{
-		hex += "FF";
-	}
-	const unsigned long colorValue = std::stoul(hex, nullptr, 16);
-	room.bgColor = sf::Color{
-		static_cast<std::uint8_t>((colorValue >> 24) & 0xFF),
-		static_cast<std::uint8_t>((colorValue >> 16) & 0xFF),
-		static_cast<std::uint8_t>((colorValue >> 8) & 0xFF),
-		static_cast<std::uint8_t>(colorValue & 0xFF)
-	};
-	for (auto& l : j["layers"])
-	{
-		if (l["type"] == "tilelayer")
-		{
-			std::unique_ptr<TilemapLayer> layer = std::make_unique<TilemapLayer>(&room);
-			layer->width = l["width"].get<int>();
-			layer->height = l["height"].get<int>();
-			for (auto& c : l["chunks"])
-			{
-				TilemapLayerChunk& chunk = layer->chunks.emplace_back();
-				chunk.values = 	c["data"].get<std::vector<int>>();
-				chunk.x = 		c["x"].get<int>();
-				chunk.y = 		c["y"].get<int>();
-				chunk.width = 	c["width"].get<int>();
-				chunk.height =	c["height"].get<int>();
-				float chunkRight = (chunk.x + chunk.width) * 16;
-				if (chunkRight > room.width)
-				{
-					// find true height
-					bool found = false;
-					for (int xx = chunk.width - 1; xx >= 0; --xx)
-					{
-						if (found) break;
-						for (int yy = 0; yy < chunk.height; ++yy)
-						{
-							int dataAt = chunk.values[xx + (yy * chunk.width)];
-							if (dataAt != 0)
-							{
-								room.width = (chunk.x + xx + 1) * 16;
-								found = true;
-								break;
-							}
-						}
-					}
-				}
-				float chunkBottom = (chunk.y + chunk.height) * 16;
-				if (chunkBottom > room.height)
-				{
-					// find true height
-					bool found = false;
-					for (int yy = chunk.height - 1; yy >= 0; --yy)
-					{
-						if (found) break;
-						for (int xx = 0; xx < chunk.width; ++xx)
-						{
-							int dataAt = chunk.values[xx + (yy * chunk.width)];
-							if (dataAt != 0)
-							{
-								room.height = (chunk.y + yy + 1) * 16;
-								found = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-			if (l.contains("properties"))
-			{
-				for (auto& prop : l["properties"])
-				{
-					if (prop["name"] == "depth")
-					{
-						layer->depth = prop["value"].get<int>();
-					}
-				}
-			}
-			room.addObject(std::move(layer));
-		}
-		else if (l["name"] == "Collisions")
-		{
-			for (auto& c : l["objects"])
-			{
-				auto& collision = room.collisions.emplace_back();
-				collision.x = c["x"];
-				collision.y = c["y"];
-				collision.width = c.value("width", 0.0f);
-				collision.height = c.value("height", 0.0f);
-				if (c.contains("polyline"))
-				{
-					collision.shape = CollisionShape::Polyline;
-					for (auto& point : c["polyline"])
-					{
-						collision.points.emplace_back(
-							collision.x + point["x"].get<float>(),
-							collision.y + point["y"].get<float>());
-					}
-				}
-				else if (c.contains("polygon"))
-				{
-					collision.shape = CollisionShape::Polygon;
-					for (auto& point : c["polygon"])
-					{
-						collision.points.emplace_back(
-							collision.x + point["x"].get<float>(),
-							collision.y + point["y"].get<float>());
-					}
-				}
-				else if (collision.width > 0.0f && collision.height > 0.0f)
-				{
-					collision.points = {
-						{ collision.x, collision.y },
-						{ collision.x + collision.width, collision.y },
-						{ collision.x + collision.width, collision.y + collision.height },
-						{ collision.x, collision.y + collision.height }
-					};
-				}
-				else if (collision.width > 0.0f)
-				{
-					collision.shape = CollisionShape::Polyline;
-					collision.points = {
-						{ collision.x, collision.y },
-						{ collision.x + collision.width, collision.y }
-					};
-				}
-			}
-		}
-		else if (l["type"] == "imagelayer")
-		{
-			std::filesystem::path imgPath = std::filesystem::path("levels") / l["image"].get<std::string>();
-			std::unique_ptr<BackgroundLayer> bg = std::make_unique<BackgroundLayer>(&room, imgPath);
-			if (l.contains("parallaxx")) bg->parallaxX = l["parallaxx"];
-			if (l.contains("parallaxy")) bg->parallaxY = l["parallaxy"];
-			if (l.contains("x")) bg->x = l["x"];
-			if (l.contains("y")) bg->y = l["y"];
-			if (l.contains("properties"))
-			{
-				for (auto& prop : l["properties"])
-				{
-					if (prop["name"] == "depth")
-					{
-						bg->depth = prop["value"].get<int>();
-					}
-				}
-			}
-			room.addObject(std::move(bg));
-		}
-	}
 
-	{
-		std::unique_ptr<Player> player = std::make_unique<Player>(&room);
-		room.player = player.get();
-		room.addObject(std::move(player));
-	}
 
 	while (window.isOpen())
 	{
@@ -223,10 +59,10 @@ int main()
 		}
 		Keys::update(window.hasFocus());
 
-		room.step();
+		level.step();
 
 		t.clear();
-		room.draw(t);
+		level.draw(t);
 		t.display();
 
 		const auto windowSize = window.getSize();

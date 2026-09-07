@@ -20,6 +20,14 @@ file(GLOB_RECURSE MAIN_SOURCES CONFIGURE_DEPENDS "src/*.cpp" "src/*.c")
 add_executable(${BINARY_NAME} ${MAIN_SOURCES})
 target_compile_features(${BINARY_NAME} PRIVATE cxx_std_11)
 target_link_libraries(${BINARY_NAME} PRIVATE SFML::Graphics SFML::Audio)
-target_include_directories(${BINARY_NAME} PRIVATE "vendor")
+target_include_directories(${BINARY_NAME} PRIVATE
+    "vendor"
+    "src/core"
+    "src/actors"
+    "src/world"
+    "src/render"
+    "src/audio"
+    "src/particles"
+)
 
 add_custom_target(link_target ALL COMMAND ${CMAKE_COMMAND} -E create_symlink ${ASSETS_DIR} ${CMAKE_BINARY_DIR}/bin/assets)

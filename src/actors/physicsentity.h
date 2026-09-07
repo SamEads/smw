@@ -11,9 +11,6 @@ public:
 public:
     float vspd = 0.0f, hspd = 0.0f;
     float grav = 0.0f;
-    bool isAtWall = false;
-    bool isOnFloor = false;
-    bool wasOnFloor = false;
     int airborneFrames = 0;
     sf::FloatRect collider;
     bool isOnSlopeSurface = false;
@@ -21,7 +18,17 @@ public:
 
 public:
     void move();
+    bool getWorldBounds(sf::FloatRect& bounds) const override;
+    bool isAtWall() const;
+    bool isOnFloor() const;
+    bool wasOnFloor() const;
 
 protected:
     virtual void onCeilingHit() {}
+    void setAtWall();
+
+private:
+    bool atWall = false;
+    bool onFloor = false;
+    bool previousFloor = false;
 };

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="1" backgroundcolor="#f8e0b0" nextlayerid="12" nextobjectid="51">
+<map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="1" backgroundcolor="#f8e0b0" nextlayerid="12" nextobjectid="60">
  <editorsettings>
   <export target="../../../assets/levels/level0.tmj" format="json"/>
  </editorsettings>
@@ -457,23 +457,20 @@
   </data>
  </layer>
  <objectgroup id="3" name="Collisions">
-  <object id="1" x="0" y="400" width="416" height="32"/>
   <object id="3" x="464" y="0" width="1328" height="224"/>
-  <object id="6" x="464" y="400" width="768" height="32"/>
   <object id="7" x="544" y="352" width="352" height="48"/>
   <object id="8" x="608" y="320" width="208" height="32"/>
   <object id="9" x="912" y="320" width="96"/>
   <object id="11" x="288" y="288" width="48"/>
   <object id="13" x="1232" y="416" width="80" height="16"/>
-  <object id="14" x="1312" y="400" width="528" height="32"/>
+  <object id="14" x="1312" y="400" width="1760" height="32"/>
   <object id="16" x="1440" y="224" width="352" height="32"/>
   <object id="17" x="1456" y="256" width="336" height="32"/>
   <object id="18" x="1552" y="288" width="240" height="16"/>
   <object id="19" x="1552" y="304" width="240" height="16"/>
   <object id="20" x="144" y="384" width="48"/>
   <object id="21" x="176" y="224" width="48"/>
-  <object id="30" x="1312" y="384" width="48"/>
-  <object id="31" x="1168" y="384" width="64" height="16"/>
+  <object id="31" x="1168" y="384" width="64" height="32"/>
   <object id="32" x="1360" y="320" width="48"/>
   <object id="35" x="1840" y="400">
    <polyline points="0,0 64,-16 112,-64 144,-80"/>
@@ -486,12 +483,11 @@
    <polygon points="16,0 48,16 64,16 96,32 96,0"/>
   </object>
   <object id="40" x="2144" y="320" width="16" height="32"/>
-  <object id="41" x="2304" y="400" width="768"/>
   <object id="43" x="208" y="368">
    <polyline points="0,0 64,-32"/>
   </object>
   <object id="44" x="2496" y="400">
-   <polyline points="0,0 160,-80 416,-144 608,-96"/>
+   <polyline points="0,0 160,-80 416,-144 576,-104"/>
   </object>
   <object id="47" x="1360" y="384">
    <polyline points="0,0 32,16"/>
@@ -502,11 +498,12 @@
   <object id="49" x="1072" y="352">
    <polyline points="0,0 -64,-32"/>
   </object>
-  <object id="50" x="1312" y="384" width="16" height="16"/>
+  <object id="50" x="1312" y="384" width="48" height="16"/>
+  <object id="53" x="0" y="400" width="416" height="32"/>
+  <object id="56" x="464" y="400" width="704" height="32"/>
  </objectgroup>
  <objectgroup id="11" name="Objects">
-  <object id="26" name="water" x="1232" y="400" width="80" height="16"/>
-  <object id="28" name="water" x="416" y="400" width="48" height="32"/>
+  <object id="59" name="qblock" x="112" y="320" width="16" height="16"/>
  </objectgroup>
  <layer id="2" name="Front Tiles" width="30" height="20">
   <properties>

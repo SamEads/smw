@@ -3,17 +3,14 @@
 #include "physicsentity.h"
 #include "sprite.h"
 #include "slopes.h"
-
-enum class PowerupState
-{
-    SMALL,
-    BIG
-};
+#include "game.h"
+#include "playercharacter.h"
 
 class Player : public PhysicsEntity
 {
 public:
-    Player(Room* room);
+    Player(Room* room, const Game& game);
+    void setCharacter(PlayerCharacter newCharacter);
 
 private:
     void handleDirection();
@@ -59,8 +56,7 @@ private:
     void decelerate(float baseDecel);
 
 public:
-    // current powerup
-    PowerupState powerup = PowerupState::SMALL;
+    PlayerCharacter character = PlayerCharacter::MARIO;
 
     // current moving direction
     int direction = 0;

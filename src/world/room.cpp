@@ -7,10 +7,86 @@
 #include "font.h"
 #include "assets.h"
 
-Room::Room()
+Room::Room(Game* game) : game(game)
 {
     timerDecrementer = 45;
     levelTime = 300;
+}
+
+std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) const
+{
+    std::vector<const Collision*> results;
+    for (const auto& collision : collisions)
+    {
+        sf::FloatRect bounds;
+        if (collision.points.empty())
+        {
+            bounds = sf::FloatRect(
+                { collision.x, collision.y },
+                { collision.width, collision.height });
+        }
+        else
+        {
+            float minX = collision.points.front().x;
+            float minY = collision.points.front().y;
+            float maxX = minX;
+            float maxY = minY;
+            for (const auto& point : collision.points)
+            {
+                minX = std::min(minX, point.x);
+                minY = std::min(minY, point.y);
+                maxX = std::max(maxX, point.x);
+                maxY = std::max(maxY, point.y);
+            }
+            bounds = sf::FloatRect({ minX, minY }, { maxX - minX, maxY - minY });
+            if (bounds.size.x == 0.0f)
+            {
+                bounds.position.x -= 0.5f;
+                bounds.size.x = 1.0f;
+            }
+            if (bounds.size.y == 0.0f)
+            {
+                bounds.position.y -= 0.5f;
+                bounds.size.y = 1.0f;
+            }
+        }
+
+        if (bounds.findIntersection(area).has_value())
+            results.push_back(&collision);
+    }
+    return results;
+}
+
+std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
+    const GameObject* ignore) const
+{
+    std::vector<GameObject*> results;
+    for (const auto& object : objects)
+    {
+        if (object.get() == ignore)
+            continue;
+
+        sf::FloatRect bounds;
+        if (object->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
+            results.push_back(object.get());
+    }
+    return results;
+}
+
+std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
+    ObjectCategory category, const GameObject* ignore) const
+{
+    std::vector<GameObject*> results;
+    for (const auto& object : objects)
+    {
+        if (object.get() == ignore || object->category != category)
+            continue;
+
+        sf::FloatRect bounds;
+        if (object->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
+            results.push_back(object.get());
+    }
+    return results;
 }
 
 int x_side = 0;
@@ -18,6 +94,10 @@ float destinationY = 0;
 bool followingDown = false;
 void Room::step()
 {
+    qblockAnimationFrame += 0.125f;
+    if (qblockAnimationFrame >= 4.0f)
+        qblockAnimationFrame -= 4.0f;
+
     timerDecrementer--;
     if (timerDecrementer == 0)
     {
@@ -34,6 +114,10 @@ void Room::step()
     for (auto& o : objects)
     {
         o->step();   
+    }
+    for (auto& o : objects)
+    {
+        o->postStep();
     }
     stepping = false;
     for (auto& o : queuedAdd)
@@ -95,7 +179,7 @@ void Room::step()
             internalCamX += player->x - player->xPrevious;
     }
 
-    if ((player->isOnFloor && player->vspd == 0.0f) ||
+    if ((player->isOnFloor() && player->vspd == 0.0f) ||
         (player->jumping && player->isPMeterFull()))
     {
         destinationY = player->y;
@@ -159,6 +243,7 @@ void Room::draw(sf::RenderTarget &target)
         obj->draw(target);
     }
 
+    /*
     for (const auto& collision : collisions)
     {
         if (collision.shape == CollisionShape::Rectangle || collision.points.size() < 2)
@@ -176,6 +261,7 @@ void Room::draw(sf::RenderTarget &target)
         }
         target.draw(lines);
     }
+    */
 
     sf::View hudView(sf::FloatRect{ { 0, 0 }, { (float)GAME_WIDTH, (float)GAME_HEIGHT } });
     target.setView(hudView);
@@ -186,23 +272,29 @@ void Room::draw(sf::RenderTarget &target)
     // target.draw(hudtemp);
 
     sf::Sprite reserveSpr(Textures::get("sprites/hud/reserve.png"));
-    sf::Sprite luigiSpr(Textures::get("sprites/hud/luigi.png"));
+    const char* characterHud = game && game->playerCharacter == PlayerCharacter::MARIO ?
+        "sprites/hud/mario.png" : "sprites/hud/luigi.png";
+    sf::Sprite characterSpr(Textures::get(characterHud));
     sf::Sprite timeSpr(Textures::get("sprites/hud/time.png"));
     sf::Sprite coinsSpr(Textures::get("sprites/hud/coins.png"));
     sf::Sprite tapePtsSprite(Textures::get("sprites/hud/tape_points.png"));
+    const Game::CharacterData* characterData = game ?
+        &game->dataFor(game->playerCharacter) : nullptr;
 
     reserveSpr.setPosition({ (GAME_WIDTH / 2) - 14, 9 });
     target.draw(reserveSpr);
 
-    luigiSpr.setPosition({ 16, 15 });
-    target.draw(luigiSpr);
+    characterSpr.setPosition({ 16, 15 });
+    target.draw(characterSpr);
     Font::SMALL.draw("x", target, 24, 23);
-    Font::SMALL.draw("5", target, 48, 23, sf::Color::White, Font::Alignment::RIGHT);
+    Font::SMALL.draw(std::to_string(characterData ? characterData->lives : 5), target, 48, 23,
+        sf::Color::White, Font::Alignment::RIGHT);
 
     tapePtsSprite.setPosition({ 72, 23 });
     Font::SMALL.draw("x", target, 80, 23);
     target.draw(tapePtsSprite);
-    Font::POINTS.draw("0", target, 112, 14, sf::Color::White, Font::Alignment::RIGHT);
+    Font::POINTS.draw(std::to_string(characterData ? characterData->tapeScore : 0), target, 112, 14,
+        sf::Color::White, Font::Alignment::RIGHT);
     
     timeSpr.setPosition({ 152, 15 });
     target.draw(timeSpr);
@@ -211,10 +303,12 @@ void Room::draw(sf::RenderTarget &target)
     coinsSpr.setPosition({ 200, 15 });
     Font::SMALL.draw("x", target, 208, 15);
     target.draw(coinsSpr);
-    Font::SMALL.draw("0", target, 240, 15, sf::Color::White, Font::Alignment::RIGHT);
+    Font::SMALL.draw(std::to_string(characterData ? characterData->coins : 0), target, 240, 15,
+        sf::Color::White, Font::Alignment::RIGHT);
 
     // Score
-    Font::SMALL.draw("0", target, 184 + (8 * 7), 23, sf::Color::White, Font::Alignment::RIGHT);
+    Font::SMALL.draw(std::to_string(characterData ? characterData->score : 0), target,
+        184 + (8 * 7), 23, sf::Color::White, Font::Alignment::RIGHT);
 
     // Font::SMALL.draw(std::to_string((int)width) + "," + std::to_string((int)height), target, GAME_WIDTH - 4, 4,  sf::Color::White, Font::Alignment::RIGHT);
     // Font::SMALL.draw(std::to_string((int)player->x) + "," + std::to_string((int)player->y), target, 4, 4);

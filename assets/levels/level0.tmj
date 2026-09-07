@@ -599,18 +599,6 @@
          "name":"Collisions",
          "objects":[
                 {
-                 "height":32,
-                 "id":1,
-                 "name":"",
-                 "opacity":1,
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":416,
-                 "x":0,
-                 "y":400
-                }, 
-                {
                  "height":224,
                  "id":3,
                  "name":"",
@@ -621,18 +609,6 @@
                  "width":1328,
                  "x":464,
                  "y":0
-                }, 
-                {
-                 "height":32,
-                 "id":6,
-                 "name":"",
-                 "opacity":1,
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":768,
-                 "x":464,
-                 "y":400
                 }, 
                 {
                  "height":48,
@@ -702,7 +678,7 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":528,
+                 "width":1760,
                  "x":1312,
                  "y":400
                 }, 
@@ -779,20 +755,7 @@
                  "y":224
                 }, 
                 {
-                 "height":0,
-                 "id":30,
-                 "name":"",
-                 "opacity":1,
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":48,
-                 "x":1312,
-                 "y":384
-                },
-            
-                {
-                 "height":16,
+                 "height":32,
                  "id":31,
                  "name":"",
                  "opacity":1,
@@ -843,7 +806,8 @@
                  "width":0,
                  "x":1840,
                  "y":400
-                }, 
+                },
+            
                 {
                  "height":0,
                  "id":36,
@@ -928,18 +892,6 @@
                 }, 
                 {
                  "height":0,
-                 "id":41,
-                 "name":"",
-                 "opacity":1,
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":768,
-                 "x":2304,
-                 "y":400
-                }, 
-                {
-                 "height":0,
                  "id":43,
                  "name":"",
                  "opacity":1,
@@ -978,8 +930,8 @@
                          "y":-144
                         }, 
                         {
-                         "x":608,
-                         "y":-96
+                         "x":576,
+                         "y":-104
                         }],
                  "rotation":0,
                  "type":"",
@@ -1059,9 +1011,33 @@
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":16,
+                 "width":48,
                  "x":1312,
                  "y":384
+                }, 
+                {
+                 "height":32,
+                 "id":53,
+                 "name":"",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":416,
+                 "x":0,
+                 "y":400
+                }, 
+                {
+                 "height":32,
+                 "id":56,
+                 "name":"",
+                 "opacity":1,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":704,
+                 "x":464,
+                 "y":400
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -1076,27 +1052,15 @@
          "objects":[
                 {
                  "height":16,
-                 "id":26,
-                 "name":"water",
+                 "id":59,
+                 "name":"qblock",
                  "opacity":1,
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":80,
-                 "x":1232,
-                 "y":400
-                }, 
-                {
-                 "height":32,
-                 "id":28,
-                 "name":"water",
-                 "opacity":1,
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":48,
-                 "x":416,
-                 "y":400
+                 "width":16,
+                 "x":112,
+                 "y":320
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -1213,7 +1177,7 @@
          "y":0
         }],
  "nextlayerid":12,
- "nextobjectid":51,
+ "nextobjectid":60,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

@@ -1,5 +1,5 @@
 #include "skidsmoke.h"
-#include "../room.h"
+#include "room.h"
 
 SkidSmoke::SkidSmoke(Room* room) : GameObject(room)
 {

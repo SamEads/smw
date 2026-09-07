@@ -6,13 +6,14 @@
 #include "tilemaplayer.h"
 #include "collision.h"
 #include "gameobject.h"
+#include "game.h"
 
 class Player;
 
 class Room
 {
 public:
-    Room();
+    explicit Room(Game* game = nullptr);
 
 public:
 	std::vector<Collision> collisions;
@@ -27,10 +28,17 @@ public:
     int levelTime = 0;
 
     sf::Color bgColor;
+    Game* game;
+    float qblockAnimationFrame = 0.0f;
 
 public:
     void step();
     void draw(sf::RenderTarget& target);
+    std::vector<const Collision*> queryCollisions(const sf::FloatRect& area) const;
+    std::vector<GameObject*> queryObjects(const sf::FloatRect& area,
+        const GameObject* ignore = nullptr) const;
+    std::vector<GameObject*> queryObjects(const sf::FloatRect& area,
+        ObjectCategory category, const GameObject* ignore = nullptr) const;
     void addObject(std::unique_ptr<GameObject> gameObject);
     void queueFree(GameObject* gameObject);
 
