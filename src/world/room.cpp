@@ -243,8 +243,8 @@ void Room::step()
     }
 
 
-    camX = MathHelper::clamp(internalCamX - 128, 0, width - GAME_WIDTH);
-    camY = MathHelper::clamp(internalCamY - 112, 0, height - GAME_HEIGHT);
+    camX = MathHelper::clamp(internalCamX - std::floorf(GAME_WIDTH / 2.0f), 0, width - GAME_WIDTH);
+    camY = MathHelper::clamp(internalCamY - std::floorf(GAME_HEIGHT / 2.0f), 0, height - GAME_HEIGHT);
 }
 
 void Room::draw(sf::RenderTarget &target, float interp)
@@ -312,34 +312,54 @@ void Room::draw(sf::RenderTarget &target, float interp)
     const Game::CharacterData* characterData = game ?
         &game->dataFor(game->playerCharacter) : nullptr;
 
-    reserveSpr.setPosition({ (GAME_WIDTH / 2) - 14, 9 });
+    float yAnchor = std::floorf(GAME_HEIGHT / 28.0f);
+    if (GAME_HEIGHT < 200)
+    {
+        yAnchor = std::floorf(GAME_HEIGHT / 48.0f);
+    }
+
+    reserveSpr.setPosition({ (GAME_WIDTH / 2) - 14, yAnchor });
     target.draw(reserveSpr);
 
-    characterSpr.setPosition({ 16, 15 });
+    float leftWeight = std::floorf(GAME_WIDTH / 4.0f) - 48;
+    characterSpr.setPosition({ leftWeight, yAnchor + 5 });
     target.draw(characterSpr);
-    Font::SMALL.draw("x", target, 24, 23);
-    Font::SMALL.draw(std::to_string(characterData ? characterData->lives : 5), target, 48, 23,
+    Font::SMALL.draw("x", target, leftWeight + 8, yAnchor + 14);
+    Font::SMALL.draw(std::to_string(characterData ? characterData->lives : 5), target, leftWeight + 32, yAnchor + 14,
         sf::Color::White, Font::Alignment::RIGHT);
 
-    tapePtsSprite.setPosition({ 72, 23 });
-    Font::SMALL.draw("x", target, 80, 23);
+    float tapeWeight = std::floorf(GAME_WIDTH / 2.0f) - std::floorf(GAME_WIDTH / 6.0f) + 6;
+    if (GAME_WIDTH < 256)
+    {
+        tapeWeight = std::floorf(GAME_WIDTH / 2.0f) - std::floorf(GAME_WIDTH / 5.7f);
+    }
+    tapePtsSprite.setPosition({ tapeWeight - 20, yAnchor + 14 });
+    Font::SMALL.draw("x", target, tapeWeight + 8 - 20, yAnchor + 14);
     target.draw(tapePtsSprite);
-    Font::POINTS.draw(std::to_string(characterData ? characterData->tapeScore : 0), target, 112, 14,
+    Font::POINTS.draw(std::to_string(characterData ? characterData->tapeScore : 0), target, tapeWeight + 20, yAnchor + 5,
         sf::Color::White, Font::Alignment::RIGHT);
     
-    timeSpr.setPosition({ 152, 15 });
+    float timerWeight = std::floorf(GAME_WIDTH / 2.0f) + std::floorf(GAME_WIDTH / 5.0f) - 25;
+    if (GAME_WIDTH < 256)
+    {
+        float timerSpriteSize = timeSpr.getTexture().getSize().x;
+        float szHalfTimer = timerSpriteSize / 2.0f;
+        timerWeight = std::floorf(GAME_WIDTH / 2.0f) + std::floorf(GAME_WIDTH / 5.7f) - szHalfTimer;
+    }
+    timeSpr.setPosition({ timerWeight, yAnchor + 6 });
     target.draw(timeSpr);
-    Font::SMALL.draw(std::to_string(levelTime), target, 176, 23, { 252, 220, 114 }, Font::Alignment::RIGHT);
+    Font::SMALL.draw(std::to_string(levelTime), target, timerWeight + 24, yAnchor + 14, { 252, 220, 114 }, Font::Alignment::RIGHT);
 
-    coinsSpr.setPosition({ 200, 15 });
-    Font::SMALL.draw("x", target, 208, 15);
+    float coinsWeight = GAME_WIDTH - (GAME_WIDTH / 4.0f) + 48;
+    coinsSpr.setPosition({ coinsWeight - 40, yAnchor + 6 });
+    Font::SMALL.draw("x", target, coinsWeight - 32, yAnchor + 6);
     target.draw(coinsSpr);
-    Font::SMALL.draw(std::to_string(characterData ? characterData->coins : 0), target, 240, 15,
+    Font::SMALL.draw(std::to_string(characterData ? characterData->coins : 0), target, coinsWeight, yAnchor + 6,
         sf::Color::White, Font::Alignment::RIGHT);
 
     // Score
     Font::SMALL.draw(std::to_string(characterData ? characterData->score : 0), target,
-        184 + (8 * 7), 23, sf::Color::White, Font::Alignment::RIGHT);
+        coinsWeight, yAnchor + 14, sf::Color::White, Font::Alignment::RIGHT);
 
     // Font::SMALL.draw(std::to_string((int)width) + "," + std::to_string((int)height), target, GAME_WIDTH - 4, 4,  sf::Color::White, Font::Alignment::RIGHT);
     // Font::SMALL.draw(std::to_string((int)player->x) + "," + std::to_string((int)player->y), target, 4, 4);

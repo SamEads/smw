@@ -7,12 +7,13 @@
 #include "keys.h"
 #include "font.h"
 #include "game.h"
+#include "core/mathhelper.h"
 #include "render/textures.h"
-
+#include<iostream>
 int main()
 {
 	// bool _soundInitResult = sf::PlaybackDevice::setDeviceToDefault();
-	sf::RenderWindow window(sf::VideoMode({ GAME_WIDTH * 4, GAME_HEIGHT * 4 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER");
+	sf::RenderWindow window(sf::VideoMode({ 640, 480 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER");
 	window.setVerticalSyncEnabled(true);
 
 #ifdef SFML3
@@ -169,6 +170,7 @@ sf::RenderTexture t;
         window.setView(view);
 
 		window.clear();
+		sf::Sprite bg(Textures::get("bg/map.png"));
 		sf::Sprite ss(t.getTexture());
 		auto rtSize = t.getSize();
 		float gameScaleX = windowSize.x / (float)GAME_WIDTH;
@@ -177,11 +179,41 @@ sf::RenderTexture t;
 		float flooredGameScaleMin = std::floorf(gameScaleMin);
 		if (flooredGameScaleMin != 0.0f)
 			gameScaleMin = flooredGameScaleMin;
-		float myRelationX = (float)GAME_WIDTH / rtSize.x;
-		float myRelationY = (float)GAME_HEIGHT / rtSize.y;
-		ss.setScale({ gameScaleMin * myRelationX, gameScaleMin * myRelationY });
+		float myRelationX =  rtSize.x / (float)GAME_WIDTH;
+		float myRelationY = rtSize.y / (float)GAME_HEIGHT;
+		bg.setScale({ gameScaleMin, gameScaleMin });
+		auto bgSize = bg.getTexture().getSize();
+		float repeatX = MathHelper::max(1.0f, std::ceilf(windowSize.x / (gameScaleMin * (float)bgSize.x)));
+		float repeatY = MathHelper::max(1.0f, std::ceilf(windowSize.y / (gameScaleMin * (float)bgSize.y)));
+		for (int i = 0; i < repeatX; ++i)
+		{
+			for (int j = 0; j < repeatY; ++j)
+			{
+				bg.setPosition({ i * bgSize.x * gameScaleMin, j * bgSize.y * gameScaleMin });
+				window.draw(bg);
+			}
+		}
+		ss.setScale({ gameScaleMin / myRelationX, gameScaleMin / myRelationY });
 		ss.setOrigin({ (float)rtSize.x / 2.0f, (float)rtSize.y / 2.0f });
 		ss.setPosition({ std::floorf(windowSize.x / 2.0f), std::floorf(windowSize.y / 2.0f) });
+		float borderSize = std::floorf(gameScaleMin) * 2.0f;
+		sf::RectangleShape rs({ rtSize.x * ss.getScale().x + borderSize, rtSize.y * ss.getScale().y + borderSize });
+		rs.setFillColor({ sf::Color::Black });
+		rs.setPosition({ ss.getPosition().x - rs.getSize().x / 2.0f, ss.getPosition().y - rs.getSize().y / 2.0f });
+		sf::Color downColor(168, 152, 120);
+		float dropShadowSize = std::floorf(gameScaleMin) * 8.0f;
+		for (int i = 0; i < 3; ++i)
+		{
+			float dropShadowInner = std::floorf(gameScaleMin) * i * 2.0f;
+			sf::RectangleShape dropShadow({ rtSize.x * ss.getScale().x - dropShadowInner, rtSize.y * ss.getScale().y - dropShadowInner });
+			dropShadow.setFillColor({ downColor });
+			dropShadow.setPosition({ ss.getPosition().x - dropShadow.getSize().x / 2.0f + dropShadowSize, ss.getPosition().y - dropShadow.getSize().y / 2.0f + dropShadowSize });
+			window.draw(dropShadow);
+			downColor.r -= 24;
+			downColor.g -= 24;
+			downColor.b -= 24;
+		}
+		window.draw(rs);
 		window.draw(ss);
 		window.display();
 	}
