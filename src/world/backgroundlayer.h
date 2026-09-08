@@ -10,7 +10,7 @@ public:
     BackgroundLayer(Room* room, const std::filesystem::path& imgPath);
 
 public:
-    void draw(sf::RenderTarget& target) override;
+    void draw(sf::RenderTarget& target, float interp) override;
 
 public:
     float parallaxX = 0.0f;

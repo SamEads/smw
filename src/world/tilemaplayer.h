@@ -1,14 +1,23 @@
 #pragma once
 
-#include <vector>
 #include "gameobject.h"
+
+#include <SFML/Graphics.hpp>
+#include <vector>
 
 class TilemapLayerChunk
 {
 public:
-    int x, y;
-    int width, height;
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+
     std::vector<int> values;
+
+    sf::VertexArray vertices{sf::PrimitiveType::Triangles};
+
+    void build(int tilesX);
 };
 
 class TilemapLayer : public GameObject
@@ -16,10 +25,11 @@ class TilemapLayer : public GameObject
 public:
     TilemapLayer(Room* room);
 
-public:
-    int width, height;
+    int width = 0;
+    int height = 0;
+
     std::vector<TilemapLayerChunk> chunks;
 
-public:
-    void draw(sf::RenderTarget& target) override;
+    void buildChunks();
+    void draw(sf::RenderTarget& target, float interp) override;
 };

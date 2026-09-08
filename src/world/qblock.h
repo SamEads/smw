@@ -9,7 +9,7 @@ public:
 
     void step() override;
     void postStep() override;
-    void draw(sf::RenderTarget& target) override;
+    void draw(sf::RenderTarget& target, float interp) override;
     bool getWorldBounds(sf::FloatRect& bounds) const override;
 
 private:

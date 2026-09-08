@@ -1,7 +1,12 @@
 #include "keys.h"
 
+#ifdef SFML3
 std::array<bool, sf::Keyboard::ScancodeCount> Keys::keys;
 std::array<bool, sf::Keyboard::ScancodeCount> Keys::keysLast;
+#else
+std::array<bool, sf::Keyboard::Scancode::ScancodeCount> Keys::keys;
+std::array<bool, sf::Keyboard::Scancode::ScancodeCount> Keys::keysLast;
+#endif
 
 void Keys::update(bool windowFocused)
 {

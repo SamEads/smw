@@ -49,7 +49,7 @@ Player::Player(Room *room, const Game& game) : PhysicsEntity(room)
     x = 48;
     y = 48;
 
-    collider = sf::FloatRect({ -4.0f, -12.0f }, { 8.0f, 12.0f });
+    collider = sf::FloatRect({ -4.0f, -14.0f }, { 8.0f, 14.0f });
 }
 #include <iostream>
 void Player::step()
@@ -111,9 +111,9 @@ void Player::setCharacter(PlayerCharacter newCharacter)
     sprite.setOrigin(16.0f, 32.0f);
 }
 
-void Player::draw(sf::RenderTarget &target)
+void Player::draw(sf::RenderTarget &target, float interp)
 {
-    sprite.draw(target, std::floorf(x), std::floorf(y) + 1.0f);
+    sprite.draw(target, MathHelper::lerp(xPrevious, x, interp), MathHelper::lerp(yPrevious, y, interp) + 1.0f);
 
     //sf::CircleShape feetMarker(2.0f);
     //feetMarker.setOrigin({ 2.0f, 2.0f });
@@ -241,7 +241,7 @@ void Player::handleWalking()
         return;
     }
 
-    if ((fabsf(hspd) >= fabsf(maxSpd)) && (isOnFloor() || isHoldingForwards()))
+    if ((fabsf(hspd) > fabsf(maxSpd)) && (isOnFloor() || isHoldingForwards()))
     {
         decelerate(forceDecel);
         return;

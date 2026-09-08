@@ -23,7 +23,7 @@ void QBlock::postStep()
 {
 }
 
-void QBlock::draw(sf::RenderTarget& target)
+void QBlock::draw(sf::RenderTarget& target, float interp)
 {
     sf::Sprite sprite(Textures::get("sprites/qblock.png"));
     int frame = static_cast<int>(room->qblockAnimationFrame) % 4;

@@ -2,52 +2,115 @@
 #include "textures.h"
 #include "room.h"
 #include "enums.h"
+
+#include <algorithm>
 #include <SFML/Graphics.hpp>
 
-TilemapLayer::TilemapLayer(Room *room) : GameObject(room)
+constexpr int TILE_SIZE = 16;
+
+void TilemapLayerChunk::build(int tilesX)
+{
+    vertices.clear();
+
+    // 6 vertices per visible tile
+    vertices.resize(
+        std::count_if(values.begin(), values.end(),
+            [](int value)
+            {
+                return value != 0;
+            }) * 6
+    );
+
+    std::size_t vertexIndex = 0;
+
+    for (int i = 0; i < static_cast<int>(values.size()); ++i)
+    {
+        int tile = values[i];
+
+        if (tile == 0)
+            continue;
+
+        --tile;
+
+        const int tileX = i % width;
+        const int tileY = i / width;
+
+        const float worldX = static_cast<float>((x + tileX) * TILE_SIZE);
+        const float worldY = static_cast<float>((y + tileY) * TILE_SIZE);
+
+        const int texX = tile % tilesX;
+        const int texY = tile / tilesX;
+
+        const float u = static_cast<float>(texX * TILE_SIZE);
+        const float v = static_cast<float>(texY * TILE_SIZE);
+
+        auto* quad = &vertices[vertexIndex];
+
+        // Triangle 1
+        quad[0].position = { worldX,             worldY };
+        quad[1].position = { worldX + TILE_SIZE, worldY };
+        quad[2].position = { worldX + TILE_SIZE, worldY + TILE_SIZE };
+
+        // Triangle 2
+        quad[3].position = { worldX,             worldY };
+        quad[4].position = { worldX + TILE_SIZE, worldY + TILE_SIZE };
+        quad[5].position = { worldX,             worldY + TILE_SIZE };
+
+        quad[0].texCoords = { u,             v };
+        quad[1].texCoords = { u + TILE_SIZE, v };
+        quad[2].texCoords = { u + TILE_SIZE, v + TILE_SIZE };
+
+        quad[3].texCoords = { u,             v };
+        quad[4].texCoords = { u + TILE_SIZE, v + TILE_SIZE };
+        quad[5].texCoords = { u,             v + TILE_SIZE };
+
+        vertexIndex += 6;
+    }
+}
+
+TilemapLayer::TilemapLayer(Room* room)
+    : GameObject(room)
 {
 }
 
-void TilemapLayer::draw(sf::RenderTarget &target)
+void TilemapLayer::buildChunks()
 {
-    sf::Texture& tex = Textures::get("tiles/ground.png");
-	sf::Sprite tile(tex);
-	int tilesX = tex.getSize().x / 16;
+    const sf::Texture& tex = Textures::get("tiles/ground.png");
+    const int tilesX = static_cast<int>(tex.getSize().x) / TILE_SIZE;
 
-    static float retarded = 0.0f;
-    int calls = 0;
-    float camX = room->camX;
-    float camY = room->camY;
-    for (auto& c : chunks)
+    for (auto& chunk : chunks)
+        chunk.build(tilesX);
+}
+
+void TilemapLayer::draw(sf::RenderTarget& target, float interp)
+{
+    const sf::Texture& tex = Textures::get("tiles/ground.png");
+
+    const float camX = room->camX;
+    const float camY = room->camY;
+
+    sf::RenderStates states;
+    states.texture = &tex;
+
+    for (const auto& chunk : chunks)
     {
-        int startX = c.x * 16;
-        if (startX - GAME_WIDTH > camX) continue;
-        if (startX + GAME_WIDTH < camX) continue;
-        int startY = c.y * 16;
-        if (startY - GAME_HEIGHT > camY) continue;
-        if (startY + GAME_HEIGHT < camY) continue;
-        int chunkSize = c.values.size();
-        for (int i = 0; i < chunkSize; ++i)
-        {
-            int tileInt = c.values[i];
-            if (tileInt == 0) continue;
-            tileInt -= 1;
-            int posX = i % c.width;
-            float screenX = (float)startX + (posX * 16);
-            if (screenX < camX - 16) continue;
-            if (screenX > camX + GAME_WIDTH) continue;
+        const float left   = static_cast<float>(chunk.x * TILE_SIZE);
+        const float top    = static_cast<float>(chunk.y * TILE_SIZE);
+        const float right  = left + chunk.width * TILE_SIZE;
+        const float bottom = top + chunk.height * TILE_SIZE;
 
-            int posY = i / c.width;
-            float screenY = (float)startY + (posY * 16);
-            if (screenY < camY - 16) continue;
-            if (screenY > camY + GAME_HEIGHT) continue;
+        if (right < camX - 16)
+            continue;
 
-            int texX = tileInt % tilesX;
-            int texY = tileInt / tilesX;
-            tile.setPosition({ screenX, screenY });
-            tile.setTextureRect({ { texX * 16, texY * 16 }, { 16, 16 } });
-            target.draw(tile);
-            ++calls;
-        }
+        if (left > camX + GAME_WIDTH + 16)
+            continue;
+
+        if (bottom < camY - 16)
+            continue;
+
+        if (top > camY + GAME_HEIGHT + 16)
+            continue;
+
+        target.draw(chunk.vertices, states);
     }
 }

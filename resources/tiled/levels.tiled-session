@@ -29,7 +29,7 @@
         },
         "tilesets/ground.tsx": {
             "scaleInDock": 2,
-            "scaleInEditor": 1
+            "scaleInEditor": 4
         },
         "tilesets/player.tsx": {
             "scaleInDock": 2,
@@ -48,11 +48,11 @@
     "project": "levels.tiled-project",
     "property.type": "int",
     "recentFiles": [
+        "tilesets/ground.tsx",
         "tilesets/player.tsx",
         "maps/level0.tmx",
         "maps/player.tsx",
-        ":/automap-tiles.tsx",
-        "tilesets/ground.tsx"
+        ":/automap-tiles.tsx"
     ],
     "tileset.lastUsedFormat": "tsx"
 }

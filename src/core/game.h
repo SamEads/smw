@@ -2,6 +2,7 @@
 
 #include <array>
 
+#include "timer.h"
 #include "playercharacter.h"
 
 enum class PowerupState
@@ -24,6 +25,8 @@ public:
 
     PlayerCharacter playerCharacter = PlayerCharacter::MARIO;
     std::array<CharacterData, 2> characterData;
+
+    Timer timer;
 
     CharacterData& dataFor(PlayerCharacter character)
     {

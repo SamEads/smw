@@ -20,10 +20,19 @@ void Sprite::load(const std::filesystem::path& png, const std::filesystem::path&
         for (auto& t : data["frames"])
         {
             Frame frame;
+#ifdef SFML3
             frame.rect.position = { t["frame"]["x"].get<int>(), t["frame"]["y"].get<int>() };
             frame.rect.size = { t["frame"]["w"].get<int>(), t["frame"]["h"].get<int>() };
             if (frame.rect.size.x > parsedDefinition->width) parsedDefinition->width = frame.rect.size.x;
             if (frame.rect.size.y > parsedDefinition->height) parsedDefinition->height = frame.rect.size.y;
+#else
+            frame.rect.left = t["frame"]["x"].get<int>();
+            frame.rect.top = t["frame"]["y"].get<int>();
+            frame.rect.width = t["frame"]["w"].get<int>();
+            frame.rect.height = t["frame"]["h"].get<int>();
+            if (frame.rect.width > parsedDefinition->width) parsedDefinition->width = frame.rect.width;
+            if (frame.rect.height > parsedDefinition->height) parsedDefinition->height = frame.rect.height;
+#endif
             parsedDefinition->frames.push_back(frame);
         }
 
@@ -53,9 +62,9 @@ void Sprite::load(const std::filesystem::path& png, const std::filesystem::path&
 
 void Sprite::draw(sf::RenderTarget& target, float x, float y)
 {
-    if (!sprite) return;
+    if (!sprite || getFrameCount() == 0) return;
 
-    if (definition->hasAnimations)
+    if (definition->hasAnimations && definition->animations.find(animation) != definition->animations.end())
     {
         auto& animData = definition->animations.at(animation);
         int frameCount = animData.to - animData.from + 1;
@@ -91,7 +100,12 @@ int Sprite::getFrameCount()
     {
         return definition->frames.size();
     }
-    auto& animData = definition->animations.at(animation);
+    auto loc = definition->animations.find(animation);
+    if (loc == definition->animations.end())
+    {
+        return definition->frames.size();
+    }
+    auto& animData = loc->second;
     int frameCount = animData.to - animData.from + 1;
     return frameCount;
 }

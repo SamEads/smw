@@ -23,6 +23,6 @@ public:
 public:
     virtual void step() {}
     virtual void postStep() {}
-    virtual void draw(sf::RenderTarget& target) {}
+    virtual void draw(sf::RenderTarget& target, float interp) {}
     virtual bool getWorldBounds(sf::FloatRect& bounds) const { return false; }
 };

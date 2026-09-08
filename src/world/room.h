@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <SFML/Graphics.hpp>
+#include <memory>
+#include <vector>
 
 #include "tilemaplayer.h"
 #include "collision.h"
@@ -20,6 +21,7 @@ public:
     std::vector<std::unique_ptr<GameObject>> objects;
 
     float camX = 0, camY = 0;
+    float prevCamX = 0, prevCamY = 0;
     int width = 0, height = 0;
 
     Player* player;
@@ -33,7 +35,7 @@ public:
 
 public:
     void step();
-    void draw(sf::RenderTarget& target);
+    void draw(sf::RenderTarget& target, float interp);
     std::vector<const Collision*> queryCollisions(const sf::FloatRect& area) const;
     std::vector<GameObject*> queryObjects(const sf::FloatRect& area,
         const GameObject* ignore = nullptr) const;

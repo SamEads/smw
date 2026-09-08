@@ -17,6 +17,7 @@ public:
     static float moveToward(float from, float to, float delta);
     static int randomRange(int min, int max);
     static float randomFloat(float min, float max);
+    static float lerp(float a, float b, float alpha);
 
     template <typename T, typename... Ts>
     static typename std::common_type<T, Ts...>::type choose(T first, Ts... rest)

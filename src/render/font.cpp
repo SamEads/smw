@@ -38,7 +38,11 @@ void Font::draw(const std::string &text, sf::RenderTarget &target, float x, floa
         return 0;
     };
     float xPos = calculateOffset(), yPos = 0;
+#ifdef SFML3
     int texWidth = sprite.getTexture().getSize().x;
+#else
+    int texWidth = sprite.getTexture()->getSize().x;
+#endif
     int charsWidth = texWidth / charWidth;
     for (int i = 0; i < text.length(); ++i)
     {
@@ -52,8 +56,13 @@ void Font::draw(const std::string &text, sf::RenderTarget &target, float x, floa
         if (character != ' ')
         {
             int mapPos = glyphMap[character];
+#ifdef SFML3
             rect.position.x = (mapPos % charsWidth) * charWidth;
             rect.position.y = (mapPos / charsWidth) * charHeight;
+#else
+            rect.left = (mapPos % charsWidth) * charWidth;
+            rect.top = (mapPos / charsWidth) * charHeight;
+#endif
             sprite.setTextureRect(rect);
 
             sprite.setPosition({ x + xPos, y + yPos });

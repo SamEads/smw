@@ -39,6 +39,7 @@ std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) c
                 maxY = std::max(maxY, point.y);
             }
             bounds = sf::FloatRect({ minX, minY }, { maxX - minX, maxY - minY });
+#ifdef SFML3
             if (bounds.size.x == 0.0f)
             {
                 bounds.position.x -= 0.5f;
@@ -49,10 +50,27 @@ std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) c
                 bounds.position.y -= 0.5f;
                 bounds.size.y = 1.0f;
             }
+#else
+            if (bounds.width == 0.0f)
+            {
+                bounds.left -= 0.5f;
+                bounds.width = 1.0f;
+            }
+            if (bounds.top == 0.0f)
+            {
+                bounds.top -= 0.5f;
+                bounds.height = 1.0f;
+            }
+#endif
         }
 
+#ifdef SFML3
         if (bounds.findIntersection(area).has_value())
             results.push_back(&collision);
+#else
+        if (bounds.intersects(area))
+            results.push_back(&collision);
+#endif
     }
     return results;
 }
@@ -67,7 +85,11 @@ std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
             continue;
 
         sf::FloatRect bounds;
+#ifdef SFML3
         if (object->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
+#else
+        if (object->getWorldBounds(bounds) && bounds.intersects(area))
+#endif
             results.push_back(object.get());
     }
     return results;
@@ -83,17 +105,25 @@ std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
             continue;
 
         sf::FloatRect bounds;
+#ifdef SFML3
         if (object->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
             results.push_back(object.get());
+#else
+        if (object->getWorldBounds(bounds) && bounds.intersects(area))
+            results.push_back(object.get());
+#endif
     }
     return results;
 }
-
+#include <iostream>
 int x_side = 0;
 float destinationY = 0;
 bool followingDown = false;
 void Room::step()
 {
+    prevCamX = camX;
+    prevCamY = camY;
+    float lastcx = internalCamX;
     qblockAnimationFrame += 0.125f;
     if (qblockAnimationFrame >= 4.0f)
         qblockAnimationFrame -= 4.0f;
@@ -217,7 +247,7 @@ void Room::step()
     camY = MathHelper::clamp(internalCamY - 112, 0, height - GAME_HEIGHT);
 }
 
-void Room::draw(sf::RenderTarget &target)
+void Room::draw(sf::RenderTarget &target, float interp)
 {
     sf::RectangleShape rs({ GAME_WIDTH, GAME_HEIGHT });
     rs.setFillColor(bgColor);
@@ -225,9 +255,10 @@ void Room::draw(sf::RenderTarget &target)
 
     sf::View gameView(sf::FloatRect{ { 0, 0 }, { (float)GAME_WIDTH, (float)GAME_HEIGHT } });
 
-    gameView.setCenter({ std::floorf(camX) + (GAME_WIDTH / 2.0f), std::floorf(camY) + (GAME_HEIGHT / 2.0f) });
+    float interpCamX = MathHelper::lerp(prevCamX, camX, interp);
+    float interpCamY = MathHelper::lerp(prevCamY, camY, interp);
+    gameView.setCenter({ interpCamX + (GAME_WIDTH / 2.0f), interpCamY + (GAME_HEIGHT / 2.0f) });
     target.setView(gameView);
-
 
     std::vector<GameObject*> sorted;
     for (auto& o : objects)
@@ -240,7 +271,7 @@ void Room::draw(sf::RenderTarget &target)
     });
     for (auto& obj : sorted)
     {
-        obj->draw(target);
+        obj->draw(target, interp);
     }
 
     /*

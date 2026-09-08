@@ -17,7 +17,7 @@ void SkidSmoke::step()
     y -= 0.2f;
 }
 
-void SkidSmoke::draw(sf::RenderTarget& target)
+void SkidSmoke::draw(sf::RenderTarget& target, float interp)
 {
     sprite.draw(target, x, y);
 }

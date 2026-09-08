@@ -86,6 +86,9 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
                         layer->depth = property["value"].get<int>();
                 }
             }
+
+            layer->buildChunks();
+
             addObject(std::move(layer));
         }
         else if (layerData["name"] == "Collisions")
