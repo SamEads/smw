@@ -5,6 +5,7 @@
 #include "player.h"
 #include "room.h"
 #include "textures.h"
+#include "collision.h"
 
 constexpr float BLOCK_SIZE = 16.0f;
 
@@ -13,6 +14,21 @@ QBlock::QBlock(Room* room, float x, float y) : GameObject(room)
     this->x = x;
     this->y = y;
     category = ObjectCategory::Gizmo;
+
+    collision = room->create<Collision>();
+    auto functor = []()
+    {
+        return false;
+    };
+    collision->x = x;
+    collision->y = y;
+    collision->category = ObjectCategory::Collision;
+    collision->width = 16;
+    collision->height = 16;
+    collision->onCollidedFromBelow = []()
+    {
+        std::cout << "Hit question block\n";
+    };
 }
 
 void QBlock::step()

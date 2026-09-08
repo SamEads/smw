@@ -12,5 +12,6 @@ enum class ObjectCategory
 	Gizmo,
 	Liquid,
 	Platform,
-	Effect
+	Effect,
+	Collision
 };

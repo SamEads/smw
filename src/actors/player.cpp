@@ -113,16 +113,9 @@ void Player::setCharacter(PlayerCharacter newCharacter)
 
 void Player::draw(sf::RenderTarget &target, float interp)
 {
-    sprite.draw(target, MathHelper::lerp(xPrevious, x, interp), MathHelper::lerp(yPrevious, y, interp) + 1.0f);
-
-    //sf::CircleShape feetMarker(2.0f);
-    //feetMarker.setOrigin({ 2.0f, 2.0f });
-    //feetMarker.setPosition({
-    //    x + collider.position.x + collider.size.x * 0.5f,
-    //    y + collider.position.y + collider.size.y
-    //});
-    //feetMarker.setFillColor(sf::Color::Blue);
-    //target.draw(feetMarker);
+    float xx = MathHelper::lerp(xPrevious, x, interp);
+    float yy = MathHelper::lerp(yPrevious, y, interp);
+    sprite.draw(target, std::floorf(xx), std::floorf(yy) + 1.0f);
 }
 
 void Player::onCeilingHit()
@@ -305,10 +298,16 @@ void Player::handleJumping()
     }
 
     if (!isOnFloor() || !canJump)
+    {
 		return;
+    }
 
 	if (!shouldKeepJumpState)
     {
+        if (spinJumping)
+        {
+            facingDirection = MathHelper::choose(-1, 1);
+        }
 		jumping = false;
 		spinJumping = false;
 		jumpingWithFullPMeter = false;
@@ -335,6 +334,12 @@ void Player::handleJumping()
     {
         Sound::play("sounds/jump.wav");
 		// AudioManager.play_sfx(AudioManager.SoundEffect.JUMP);
+    }
+
+    if (!spinJumping && std::fabsf(hspd) >= P_METER_START_SPEED)
+    {
+        altScuttleTimer = std::floorf(std::fabsf(hspd) * 4.0f);
+        leaveGroundSpeed = hspd;
     }
 		
 	vspd = getJumpSpeed();
@@ -391,7 +396,7 @@ void Player::handleAnimation()
 		sprite.play("slide");
 		return;
     }
-    if (isOnFloor())
+    if (isOnFloor() || altScuttleTimer > 0)
 		handleFloorAnimations();
 	else
 		handleAirAnimations();
@@ -413,7 +418,7 @@ void Player::handleSkidSmoke()
 
 void Player::handleFloorAnimations()
 {
-    if (hspd == 0 && direction == 0)
+    if (hspd == 0 && direction == 0 && isOnFloor())
     {
 		if (lookingUp)
 			sprite.play("idle_up");
@@ -424,13 +429,14 @@ void Player::handleFloorAnimations()
 		return;
     }
 
-	if (isHoldingBackwards())
+	if (isHoldingBackwards() && isOnFloor())
     {
 		sprite.play("skid");
 		return;
     }
 	
-	if (!isPMeterFull())
+    float legibleAngle = fabsf(slopeAngle) / 3.14159265f * 180.0f;
+	if (!isPMeterFull() || (isWalkingUpSlope() && legibleAngle >= 40.0f))
     {
 		sprite.play("walk");
     }
@@ -439,14 +445,21 @@ void Player::handleFloorAnimations()
 		sprite.play("run");
     }
 
-    if (walkingAgainstWall)
+    float mult = (isPMeterFull()) ? 0.2f : 0.15f;
+    if (altScuttleTimer > 0)
+    {
+        sprite.frame += MathHelper::max(0.125f, MathHelper::max(std::fabsf(hspd), std::fabsf(leaveGroundSpeed)) * mult);
+    }
+    else if (walkingAgainstWall)
     {
         sprite.frame += 0.125f;
     }
     else
     {
-        sprite.frame += MathHelper::max(0.125f, fabsf(hspd) * 0.15f);
+        sprite.frame += MathHelper::max(0.125f, fabsf(hspd) * mult);
     }
+
+    if (altScuttleTimer > 0.0f) altScuttleTimer--;
 }
 
 void Player::handleAirAnimations()
@@ -487,6 +500,13 @@ bool Player::isSlipperyLevel()
 bool Player::isOnSlope()
 {
     return onSlopeType != SlopeType::NONE;
+}
+
+bool Player::isWalkingUpSlope()
+{
+    int slopeDir = getSlopeDirection();
+    if (slopeDir == 0 || direction == 0) return false;
+    return getSlopeDirection() != direction;
 }
 
 bool Player::duckingOnFloor()

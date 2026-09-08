@@ -41,6 +41,7 @@ private:
 
 private:
     bool isOnSlope();
+    bool isWalkingUpSlope();
     int getSlopeDirection();
     float getSlopeSlideSpeed();
     float getSlopeAutoWalkSpeed();
@@ -128,6 +129,9 @@ public:
 
     int smokeTimer = 0;
     int scuttleTimer = 0;
+
+    int altScuttleTimer = 0;
+    float leaveGroundSpeed = 0.0f;
 
 	Sprite sprite;
 

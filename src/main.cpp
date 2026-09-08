@@ -9,6 +9,7 @@
 #include "game.h"
 #include "core/mathhelper.h"
 #include "render/textures.h"
+#include <SFML/Audio/Music.hpp>
 #include<iostream>
 int main()
 {
@@ -25,13 +26,13 @@ sf::RenderTexture t;
 
 	Game game;
 	game.timer.setTickRate(60);
-	Level level(GetAssetDirectory("levels/level0.tmj"), &game);
+	Level level(GetAssetDirectory("levels/level1.tmj"), &game);
 
 	Font::SMALL.initialize("sprites/hud/small_font.png", 8, 8,
 	{
-		{ 'A', 0 },  { 'B', 1 },  { 'C', 2 },
-		{ 'D', 3 },  { 'E', 4 },  { 'F', 5 },
-		{ 'G', 6 },  { 'H', 7 },  { 'I', 8 },
+		{ 'A', 0 },  { 'B',  1 }, { 'C',  2 },
+		{ 'D', 3 },  { 'E',  4 }, { 'F',  5 },
+		{ 'G', 6 },  { 'H',  7 }, { 'I',  8 },
 		{ 'J', 9 },  { 'K', 10 }, { 'L', 11 },
 		{ 'M', 12 }, { 'N', 13 }, { 'O', 14 },
 		{ 'P', 15 }, { 'Q', 16 }, { 'R', 17 },
@@ -43,7 +44,7 @@ sf::RenderTexture t;
 		{ '7', 33 }, { '8', 34 }, { '9', 35 },
 		{ '.', 36 }, { ',', 37 }, { '-', 38 },
 		{ '!', 39 }, { '=', 40 }, { ':', 41 },
-		{ '\'', 42 },{ '\"', 43 },{ 'x', 44 },
+		{ '\'', 42 },{ '\"',43 },{ 'x', 44 },
 	});
 	Font::POINTS.initialize("sprites/hud/points_font.png", 8, 16,
 	{
@@ -129,6 +130,11 @@ sf::RenderTexture t;
 	}
 	*/
 
+	// sf::Music music("assets/music/baci_perugina.ogg");
+	// music.setVolume(90.0f);
+	// music.setPitch(1.1f);
+	// music.setLooping(true);
+	// music.play();
 	while (window.isOpen())
 	{
 #ifdef SFML3
@@ -159,6 +165,7 @@ sf::RenderTexture t;
 		}
 
         float interp = game.timer.getAlpha();
+		if (interp < 0.0f || interp > 1.0f) std::cout << interp << "\n";
 
 		t.clear();
 		level.draw(t, interp);

@@ -11,6 +11,7 @@ class Room;
 class GameObject
 {
 public:
+    GameObject() = default;
     GameObject(Room* room);
 
 public:

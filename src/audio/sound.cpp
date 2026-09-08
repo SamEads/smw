@@ -2,17 +2,15 @@
 #include "assets.h"
 
 #include <SFML/Audio/SoundBuffer.hpp>
-
 #include <algorithm>
 #include <unordered_map>
 #include <vector>
-#include <memory>
-
-std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> buffers;
-std::unordered_map<std::string, std::vector<std::shared_ptr<Sound>>> soundPools;
 
 namespace
 {
+std::unordered_map<std::string, std::unique_ptr<sf::SoundBuffer>> buffers;
+std::vector<std::shared_ptr<Sound>> activeSounds;
+
 std::string getSoundKey(const std::filesystem::path& path)
 {
     return GetAssetDirectory(path).lexically_normal().generic_string();
@@ -20,18 +18,13 @@ std::string getSoundKey(const std::filesystem::path& path)
 
 sf::SoundBuffer& getBuffer(const std::filesystem::path& path, const std::string& key)
 {
-    auto it = buffers.find(key);
-
-    if (it != buffers.end())
-        return *it->second;
-
-    auto buffer = std::make_unique<sf::SoundBuffer>();
-    buffer->loadFromFile(GetAssetDirectory(path));
-
-    return *buffers.emplace(
-        key,
-        std::move(buffer)
-    ).first->second;
+    auto buffer = buffers.find(key);
+    if (buffer == buffers.end())
+    {
+        auto loadedBuffer = std::make_unique<sf::SoundBuffer>(GetAssetDirectory(path));
+        buffer = buffers.emplace(key, std::move(loadedBuffer)).first;
+    }
+    return *buffer->second;
 }
 }
 
@@ -39,93 +32,57 @@ Sound::Sound(const std::string& path, const sf::SoundBuffer& buffer) : sound(buf
 {
 }
 
-void Sound::preload(const std::filesystem::path& soundPath, int count)
-{
-    const std::string key = getSoundKey(soundPath);
-    const auto& buffer = getBuffer(soundPath, key);
-
-    auto& pool = soundPools[key];
-
-    while (static_cast<int>(pool.size()) < count)
-    {
-        pool.push_back(std::make_shared<Sound>(key, buffer));
-    }
-}
-
+#include <iostream>
+#include "../core/profiler.h"
 std::shared_ptr<Sound> Sound::play(const std::filesystem::path& soundPath, float volume, float pitch)
 {
-    const std::string key = getSoundKey(soundPath);
-
-    auto poolIt = soundPools.find(key);
-
-    if (poolIt == soundPools.end())
-    {
-        preload(soundPath, 8);
-        poolIt = soundPools.find(key);
-    }
-
-    auto& pool = poolIt->second;
-
-    for (auto& sound : pool)
-    {
-        if (sound->sound.getStatus() == sf::SoundSource::Status::Stopped)
+    activeSounds.erase(
+        std::remove_if(activeSounds.begin(), activeSounds.end(), [](const std::shared_ptr<Sound>& sound)
         {
-            sound->sound.setVolume(volume * 100.0f);
-            sound->sound.setPitch(pitch);
-            sound->sound.play();
+            return sound->sound.getStatus() == sf::SoundSource::Status::Stopped;
+        }),
+        activeSounds.end());
 
-            return sound;
-        }
-    }
+    std::string key = getSoundKey(soundPath);
 
-    // No free voice.
-    // Steal the first one instead of allocating another sf::Sound.
-    auto& sound = pool.front();
-
-    sound->sound.stop();
+    auto sound = std::make_shared<Sound>(key, getBuffer(soundPath, key));
     sound->sound.setVolume(volume * 100.0f);
     sound->sound.setPitch(pitch);
     sound->sound.play();
-
+    activeSounds.push_back(sound);
     return sound;
 }
 
 void Sound::stop(const std::filesystem::path& soundPath)
 {
     const std::string key = getSoundKey(soundPath);
-
-    auto poolIt = soundPools.find(key);
-
-    if (poolIt == soundPools.end())
-        return;
-
-    for (auto& sound : poolIt->second)
-        sound->stop();
+    for (const auto& sound : activeSounds)
+    {
+        if (sound->path == key)
+        {
+            sound->stop();
+        }
+    }
 }
 
 void Sound::stop(const std::shared_ptr<Sound>& sound)
 {
     if (sound)
+    {
         sound->stop();
+    }
 }
 
 bool Sound::isPlaying(const std::filesystem::path& soundPath)
 {
     const std::string key = getSoundKey(soundPath);
-
-    auto poolIt = soundPools.find(key);
-
-    if (poolIt == soundPools.end())
-        return false;
-
-    for (const auto& sound : poolIt->second)
+    for (const auto& sound : activeSounds)
     {
-        if (sound->sound.getStatus() == sf::SoundSource::Status::Playing)
+        if (sound->path == key && sound->sound.getStatus() == sf::SoundSource::Status::Playing)
         {
             return true;
         }
     }
-
     return false;
 }
 

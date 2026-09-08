@@ -7,7 +7,7 @@
 #include "backgroundlayer.h"
 #include "player.h"
 #include "qblock.h"
-
+#include <iostream>
 Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
 {
     std::ifstream input(mapPath);
@@ -69,7 +69,8 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
                         {
                             if (chunk.values[xx + yy * chunk.width] != 0)
                             {
-                                height = (chunk.y + yy + 1) * 16;
+                                int newHeight = (chunk.y + yy + 1) * 16;
+                                if (newHeight > height) height = newHeight;
                                 found = true;
                                 break;
                             }
@@ -95,49 +96,51 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
         {
             for (auto& objectData : layerData["objects"])
             {
-                auto& collision = collisions.emplace_back();
-                collision.x = objectData["x"];
-                collision.y = objectData["y"];
-                collision.width = objectData.value("width", 0.0f);
-                collision.height = objectData.value("height", 0.0f);
+                auto collision = std::make_unique<Collision>();
+                collision->category = ObjectCategory::Collision;
+                collision->x = objectData["x"];
+                collision->y = objectData["y"];
+                collision->width = objectData.value("width", 0.0f);
+                collision->height = objectData.value("height", 0.0f);
 
                 if (objectData.contains("polyline"))
                 {
-                    collision.shape = CollisionShape::Polyline;
+                    collision->shape = CollisionShape::Polyline;
                     for (auto& point : objectData["polyline"])
                     {
-                        collision.points.emplace_back(
-                            collision.x + point["x"].get<float>(),
-                            collision.y + point["y"].get<float>());
+                        collision->points.emplace_back(
+                            collision->x + point["x"].get<float>(),
+                            collision->y + point["y"].get<float>());
                     }
                 }
                 else if (objectData.contains("polygon"))
                 {
-                    collision.shape = CollisionShape::Polygon;
+                    collision->shape = CollisionShape::Polygon;
                     for (auto& point : objectData["polygon"])
                     {
-                        collision.points.emplace_back(
-                            collision.x + point["x"].get<float>(),
-                            collision.y + point["y"].get<float>());
+                        collision->points.emplace_back(
+                            collision->x + point["x"].get<float>(),
+                            collision->y + point["y"].get<float>());
                     }
                 }
-                else if (collision.width > 0.0f && collision.height > 0.0f)
+                else if (collision->width > 0.0f && collision->height > 0.0f)
                 {
-                    collision.points = {
-                        { collision.x, collision.y },
-                        { collision.x + collision.width, collision.y },
-                        { collision.x + collision.width, collision.y + collision.height },
-                        { collision.x, collision.y + collision.height }
+                    collision->points = {
+                        { collision->x, collision->y },
+                        { collision->x + collision->width, collision->y },
+                        { collision->x + collision->width, collision->y + collision->height },
+                        { collision->x, collision->y + collision->height }
                     };
                 }
-                else if (collision.width > 0.0f)
+                else if (collision->width > 0.0f)
                 {
-                    collision.shape = CollisionShape::Polyline;
-                    collision.points = {
-                        { collision.x, collision.y },
-                        { collision.x + collision.width, collision.y }
+                    collision->shape = CollisionShape::Polyline;
+                    collision->points = {
+                        { collision->x, collision->y },
+                        { collision->x + collision->width, collision->y }
                     };
                 }
+                addObject(std::move(collision));
             }
         }
         else if (layerData["type"] == "objectgroup")

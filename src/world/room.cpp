@@ -16,22 +16,25 @@ Room::Room(Game* game) : game(game)
 std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) const
 {
     std::vector<const Collision*> results;
-    for (const auto& collision : collisions)
+    for (const auto& o : objects)
     {
+        if (o->category != ObjectCategory::Collision)
+            continue;
+        Collision* collision = (Collision*)o.get();
         sf::FloatRect bounds;
-        if (collision.points.empty())
+        if (collision->points.empty())
         {
             bounds = sf::FloatRect(
-                { collision.x, collision.y },
-                { collision.width, collision.height });
+                { collision->x, collision->y },
+                { collision->width, collision->height });
         }
         else
         {
-            float minX = collision.points.front().x;
-            float minY = collision.points.front().y;
+            float minX = collision->points.front().x;
+            float minY = collision->points.front().y;
             float maxX = minX;
             float maxY = minY;
-            for (const auto& point : collision.points)
+            for (const auto& point : collision->points)
             {
                 minX = std::min(minX, point.x);
                 minY = std::min(minY, point.y);
@@ -39,7 +42,6 @@ std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) c
                 maxY = std::max(maxY, point.y);
             }
             bounds = sf::FloatRect({ minX, minY }, { maxX - minX, maxY - minY });
-#ifdef SFML3
             if (bounds.size.x == 0.0f)
             {
                 bounds.position.x -= 0.5f;
@@ -50,27 +52,11 @@ std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) c
                 bounds.position.y -= 0.5f;
                 bounds.size.y = 1.0f;
             }
-#else
-            if (bounds.width == 0.0f)
-            {
-                bounds.left -= 0.5f;
-                bounds.width = 1.0f;
-            }
-            if (bounds.top == 0.0f)
-            {
-                bounds.top -= 0.5f;
-                bounds.height = 1.0f;
-            }
-#endif
         }
 
-#ifdef SFML3
         if (bounds.findIntersection(area).has_value())
-            results.push_back(&collision);
-#else
-        if (bounds.intersects(area))
-            results.push_back(&collision);
-#endif
+            results.push_back(collision);
+
     }
     return results;
 }
@@ -85,11 +71,7 @@ std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
             continue;
 
         sf::FloatRect bounds;
-#ifdef SFML3
         if (object->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
-#else
-        if (object->getWorldBounds(bounds) && bounds.intersects(area))
-#endif
             results.push_back(object.get());
     }
     return results;
@@ -105,17 +87,12 @@ std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
             continue;
 
         sf::FloatRect bounds;
-#ifdef SFML3
         if (object->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
             results.push_back(object.get());
-#else
-        if (object->getWorldBounds(bounds) && bounds.intersects(area))
-            results.push_back(object.get());
-#endif
     }
     return results;
 }
-#include <iostream>
+
 int x_side = 0;
 float destinationY = 0;
 bool followingDown = false;
@@ -257,7 +234,7 @@ void Room::draw(sf::RenderTarget &target, float interp)
 
     float interpCamX = MathHelper::lerp(prevCamX, camX, interp);
     float interpCamY = MathHelper::lerp(prevCamY, camY, interp);
-    gameView.setCenter({ interpCamX + (GAME_WIDTH / 2.0f), interpCamY + (GAME_HEIGHT / 2.0f) });
+    gameView.setCenter({ std::floorf(interpCamX) + (GAME_WIDTH / 2.0f), std::floorf(interpCamY) + (GAME_HEIGHT / 2.0f) });
     target.setView(gameView);
 
     std::vector<GameObject*> sorted;

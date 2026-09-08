@@ -53,6 +53,5 @@ float MathHelper::randomFloat(float min, float max)
 
 float MathHelper::lerp(float a, float b, float alpha)
 {
-    // return std::floor(((1.0f - alpha) * a + alpha * b) * 4.0f) / 4.0f;
-    return std::floor((1.0f - alpha) * a + alpha * b);
+    return (1.0f - alpha) * a + alpha * b;
 }

@@ -64,8 +64,10 @@ void PhysicsEntity::move()
     slopeAngle = 0.0f;
 
     x += hspd;
-    for (auto& c : room->collisions)
+    for (auto& o : room->objects)
     {
+        if (o->category != ObjectCategory::Collision) continue;
+        Collision& c = *(Collision*)o.get();
         if (c.shape != CollisionShape::Rectangle)
         {
             if (c.shape == CollisionShape::Polygon)
@@ -146,8 +148,10 @@ void PhysicsEntity::move()
 
     y += vspd;
 
-    for (auto& c : room->collisions)
+    for (auto& o : room->objects)
     {
+        if (o->category != ObjectCategory::Collision) continue;
+        Collision& c = *(Collision*)o.get();
         if (c.shape != CollisionShape::Rectangle)
         {
             if (c.points.size() >= 2)
@@ -243,6 +247,7 @@ void PhysicsEntity::move()
                     y = currentCeiling - collider.position.y;
                     vspd = 0.0f;
                     onCeilingHit();
+                    c.onCollidedFromBelow();
                 }
             }
             continue;
@@ -293,6 +298,7 @@ void PhysicsEntity::move()
                 y += hit->size.y;
                 vspd = 0.0f;
                 onCeilingHit();
+                c.onCollidedFromBelow();
             }
         }
     }
@@ -305,8 +311,10 @@ void PhysicsEntity::move()
         float supportDistance = 0.0f;
         bool foundSupport = false;
 
-        for (auto& c : room->collisions)
+        for (auto& o : room->objects)
         {
+            if (o->category != ObjectCategory::Collision) continue;
+            Collision& c = *(Collision*)o.get();
             if (c.shape == CollisionShape::Rectangle)
             {
                 if (c.width <= 0.0f || centerX < c.x || centerX > c.x + c.width)

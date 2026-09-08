@@ -17,7 +17,7 @@ public:
     explicit Room(Game* game = nullptr);
 
 public:
-	std::vector<Collision> collisions;
+	// std::vector<Collision> collisions;
     std::vector<std::unique_ptr<GameObject>> objects;
 
     float camX = 0, camY = 0;
@@ -43,6 +43,14 @@ public:
         ObjectCategory category, const GameObject* ignore = nullptr) const;
     void addObject(std::unique_ptr<GameObject> gameObject);
     void queueFree(GameObject* gameObject);
+    template<typename T, typename... Args>
+    T* create(Args&&... args)
+    {
+        std::unique_ptr<T> obj = std::make_unique<T>(std::forward<Args>(args)...);
+        T* ptr = obj.get();
+        addObject(std::move(obj));
+        return ptr;
+    }
 
 private:
     int timerDecrementer = 0;

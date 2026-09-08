@@ -2,6 +2,8 @@
 
 #include "gameobject.h"
 
+class Collision;
+
 class QBlock : public GameObject
 {
 public:
@@ -14,4 +16,5 @@ public:
 
 private:
     bool wasHit = false;
+    Collision* collision;
 };
