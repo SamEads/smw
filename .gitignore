@@ -5,3 +5,5 @@ out
 .vs
 .vscode
 resources/tiled/levels.tiled-session
+resources/tiled/levels.tiled-session
+*.DS_Store
