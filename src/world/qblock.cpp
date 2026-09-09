@@ -25,10 +25,6 @@ QBlock::QBlock(Room* room, float x, float y) : GameObject(room)
     collision->category = ObjectCategory::Collision;
     collision->width = 16;
     collision->height = 16;
-    collision->onCollidedFromBelow = []()
-    {
-        std::cout << "Hit question block\n";
-    };
 }
 
 void QBlock::step()
