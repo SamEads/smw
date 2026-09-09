@@ -138,6 +138,7 @@ public:
 public:
     void step() override;
     void draw(sf::RenderTarget& target, float interp) override;
+    ObjectCategory getCategory() const override { return ObjectCategory::PLAYER; }
 
 public:
     bool isPMeterFull();

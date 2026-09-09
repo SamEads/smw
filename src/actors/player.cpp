@@ -38,13 +38,12 @@ constexpr float GRAVITY_JUMP                = 0.1875f;
 
 constexpr float SPIN_JUMP_SPEED_INCREASE    = FIX 8.617875;
 
-constexpr float SLOPE_GRADUAL_LIMIT         = 20.0f * 3.14159265f / 180.0f;
-constexpr float SLOPE_NORMAL_LIMIT          = 30.0f * 3.14159265f / 180.0f;
-constexpr float SLOPE_STEEP_LIMIT           = 55.0f * 3.14159265f / 180.0f;
+constexpr float SLOPE_GRADUAL_LIMIT         = 20.0f * M_PI / 180.0f;
+constexpr float SLOPE_NORMAL_LIMIT          = 30.0f * M_PI / 180.0f;
+constexpr float SLOPE_STEEP_LIMIT           = 55.0f * M_PI / 180.0f;
 
 Player::Player(Room *room, const Game& game) : PhysicsEntity(room)
 {
-    category = ObjectCategory::Player;
     setCharacter(game.playerCharacter);
     x = 48;
     y = 48;
@@ -115,6 +114,7 @@ void Player::draw(sf::RenderTarget &target, float interp)
 {
     float xx = MathHelper::lerp(xPrevious, x, interp);
     float yy = MathHelper::lerp(yPrevious, y, interp);
+    if (xPrevious != x) std::cout << xPrevious << "," << x << "\n";
     sprite.draw(target, std::floorf(xx), std::floorf(yy) + 1.0f);
 }
 
@@ -157,7 +157,7 @@ void Player::handleSlopes()
 
     float angle = fabsf(slopeAngle);
     bool slopesDownRight = slopeAngle > 0.0f;
-    if (angle < 8.0f * 3.14159265f / 180.0f)
+    if (angle < 8.0f * M_PI / 180.0f)
         onSlopeType = SlopeType::NONE;
     else if (angle < SLOPE_GRADUAL_LIMIT)
         onSlopeType = slopesDownRight ? SlopeType::GRADUAL_RIGHT : SlopeType::GRADUAL_LEFT;
@@ -281,7 +281,7 @@ void Player::handleJumping()
 {
     if (character == PlayerCharacter::LUIGI)
     {
-        if (!spinJumping && !isOnFloor() && airborneFrames > 0 &&
+        if (!spinJumping && !isOnFloor() &&
             !jumpingWithFullPMeter && !sliding && !ducking)
         {
             if (!Sound::isPlaying("sounds/scuttle.wav"))
@@ -409,10 +409,9 @@ void Player::handleSkidSmoke()
         smokeTimer = 0;
         if (isSlipperyLevel() || !isOnFloor()) return;
         if (!isHoldingBackwards() && !((ducking || sliding) && fabsf(hspd) > 0.2f)) return;
-        auto particle = std::make_unique<SkidSmoke>(room);
+        auto particle = room->create<SkidSmoke>(room);
         particle->x = x + (-direction * 6);
         particle->y = y;
-        room->addObject(std::move(particle));
     }
 }
 
@@ -435,7 +434,7 @@ void Player::handleFloorAnimations()
 		return;
     }
 	
-    float legibleAngle = fabsf(slopeAngle) / 3.14159265f * 180.0f;
+    float legibleAngle = fabsf(slopeAngle) / M_PI * 180.0f;
 	if (!isPMeterFull() || (isWalkingUpSlope() && legibleAngle >= 40.0f))
     {
 		sprite.play("walk");

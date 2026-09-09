@@ -5,13 +5,12 @@
 
 enum class ObjectCategory
 {
-	World,
-	Player,
-	Enemy,
-	Item,
-	Gizmo,
-	Liquid,
-	Platform,
-	Effect,
-	Collision
+	WORLD,
+	PLAYER,
+	ENEMY,
+	ITEM,
+	GIZMO,
+	LIQUID,
+	EFFECT,
+	COLLISION
 };

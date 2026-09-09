@@ -29,7 +29,7 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
     {
         if (layerData["type"] == "tilelayer")
         {
-            auto layer = std::make_unique<TilemapLayer>(this);
+            auto layer = create<TilemapLayer>(this);
             layer->width = layerData["width"].get<int>();
             layer->height = layerData["height"].get<int>();
             for (auto& chunkData : layerData["chunks"])
@@ -89,15 +89,12 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
             }
 
             layer->buildChunks();
-
-            addObject(std::move(layer));
         }
         else if (layerData["name"] == "Collisions")
         {
             for (auto& objectData : layerData["objects"])
             {
-                auto collision = std::make_unique<Collision>();
-                collision->category = ObjectCategory::Collision;
+                auto collision = create<Collision>();
                 collision->x = objectData["x"];
                 collision->y = objectData["y"];
                 collision->width = objectData.value("width", 0.0f);
@@ -140,7 +137,6 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
                         { collision->x + collision->width, collision->y }
                     };
                 }
-                addObject(std::move(collision));
             }
         }
         else if (layerData["type"] == "objectgroup")
@@ -151,8 +147,7 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
                 std::string objectName = objectData.value("name", "");
                 if (objectType == "qblock" || objectName == "qblock" || objectName == "QBlock")
                 {
-                    addObject(std::make_unique<QBlock>(this,
-                        objectData["x"].get<float>(), objectData["y"].get<float>()));
+                    create<QBlock>(this, objectData["x"].get<float>(), objectData["y"].get<float>());
                 }
             }
         }
@@ -160,7 +155,7 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
         {
             std::filesystem::path imagePath = std::filesystem::path("levels") /
                 layerData["image"].get<std::string>();
-            auto background = std::make_unique<BackgroundLayer>(this, imagePath);
+            auto background = create<BackgroundLayer>(this, imagePath);
             if (layerData.contains("parallaxx")) background->parallaxX = layerData["parallaxx"];
             if (layerData.contains("parallaxy")) background->parallaxY = layerData["parallaxy"];
             if (layerData.contains("x")) background->x = layerData["x"];
@@ -173,11 +168,8 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
                         background->depth = property["value"].get<int>();
                 }
             }
-            addObject(std::move(background));
         }
     }
 
-    auto playerObject = std::make_unique<Player>(this, *game);
-    player = playerObject.get();
-    addObject(std::move(playerObject));
+    player = create<Player>(this, *game);
 }

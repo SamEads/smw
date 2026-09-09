@@ -17,12 +17,7 @@ int main()
 	sf::RenderWindow window(sf::VideoMode({ 640, 480 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER");
 	window.setVerticalSyncEnabled(true);
 
-#ifdef SFML3
 	sf::RenderTexture t({ GAME_WIDTH, GAME_HEIGHT });
-#else
-sf::RenderTexture t;
-	t.create(GAME_WIDTH, GAME_HEIGHT);
-#endif
 
 	Game game;
 	game.timer.setTickRate(60);
@@ -137,23 +132,11 @@ sf::RenderTexture t;
 	// music.play();
 	while (window.isOpen())
 	{
-#ifdef SFML3
 		while (const std::optional event = window.pollEvent())
 		{
 			if (event->is<sf::Event::Closed>())
-			{
 				window.close();
-			}
 		}
-#else
-        for (auto event = sf::Event(); window.pollEvent(event);)
-        {
-            if (event.type == sf::Event::Closed)
-            {
-                window.close();
-            }
-        }
-#endif
 
 		game.timer.update();
         

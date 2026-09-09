@@ -18,7 +18,7 @@ std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) c
     std::vector<const Collision*> results;
     for (const auto& o : objects)
     {
-        if (o->category != ObjectCategory::Collision)
+        if (o->getCategory() != ObjectCategory::COLLISION)
             continue;
         Collision* collision = (Collision*)o.get();
         sf::FloatRect bounds;
@@ -83,7 +83,7 @@ std::vector<GameObject*> Room::queryObjects(const sf::FloatRect& area,
     std::vector<GameObject*> results;
     for (const auto& object : objects)
     {
-        if (object.get() == ignore || object->category != category)
+        if (object.get() == ignore || object->getCategory() != category)
             continue;
 
         sf::FloatRect bounds;

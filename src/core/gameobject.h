@@ -19,11 +19,11 @@ public:
     float x, y;
     float xPrevious, yPrevious;
     int depth = 0;
-    ObjectCategory category = ObjectCategory::World;
 
 public:
     virtual void step() {}
     virtual void postStep() {}
     virtual void draw(sf::RenderTarget& target, float interp) {}
     virtual bool getWorldBounds(sf::FloatRect& bounds) const { return false; }
+    virtual ObjectCategory getCategory() const { return ObjectCategory::WORLD; }
 };

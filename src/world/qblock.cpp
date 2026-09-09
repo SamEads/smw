@@ -13,7 +13,6 @@ QBlock::QBlock(Room* room, float x, float y) : GameObject(room)
 {
     this->x = x;
     this->y = y;
-    category = ObjectCategory::Gizmo;
 
     collision = room->create<Collision>();
     auto functor = []()
@@ -22,16 +21,11 @@ QBlock::QBlock(Room* room, float x, float y) : GameObject(room)
     };
     collision->x = x;
     collision->y = y;
-    collision->category = ObjectCategory::Collision;
     collision->width = 16;
     collision->height = 16;
 }
 
 void QBlock::step()
-{
-}
-
-void QBlock::postStep()
 {
 }
 

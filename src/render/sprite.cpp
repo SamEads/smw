@@ -20,19 +20,10 @@ void Sprite::load(const std::filesystem::path& png, const std::filesystem::path&
         for (auto& t : data["frames"])
         {
             Frame frame;
-#ifdef SFML3
             frame.rect.position = { t["frame"]["x"].get<int>(), t["frame"]["y"].get<int>() };
             frame.rect.size = { t["frame"]["w"].get<int>(), t["frame"]["h"].get<int>() };
             if (frame.rect.size.x > parsedDefinition->width) parsedDefinition->width = frame.rect.size.x;
             if (frame.rect.size.y > parsedDefinition->height) parsedDefinition->height = frame.rect.size.y;
-#else
-            frame.rect.left = t["frame"]["x"].get<int>();
-            frame.rect.top = t["frame"]["y"].get<int>();
-            frame.rect.width = t["frame"]["w"].get<int>();
-            frame.rect.height = t["frame"]["h"].get<int>();
-            if (frame.rect.width > parsedDefinition->width) parsedDefinition->width = frame.rect.width;
-            if (frame.rect.height > parsedDefinition->height) parsedDefinition->height = frame.rect.height;
-#endif
             parsedDefinition->frames.push_back(frame);
         }
 
@@ -74,7 +65,7 @@ void Sprite::draw(sf::RenderTarget& target, float x, float y)
     else
     {
         float visFrame = (int)frame * width;
-        sprite->setTextureRect({ { visFrame, 0 }, { width, height } });
+        sprite->setTextureRect({ { (int)visFrame, 0 }, { (int)width, (int)height } });
     }
     sprite->setPosition({ x, y });
     sprite->setOrigin(origin);

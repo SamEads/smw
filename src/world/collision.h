@@ -16,8 +16,9 @@ class Collision : public GameObject
 {
 public:
 	float width = 0.0f, height = 0.0f;
-	std::function<void()> onCollidedFromBelow;
-	std::function<void()> onCollidedFromAbove;
 	CollisionShape shape = CollisionShape::Rectangle;
 	std::vector<sf::Vector2f> points;
+
+public:
+	ObjectCategory getCategory() const override { return ObjectCategory::COLLISION; }
 };

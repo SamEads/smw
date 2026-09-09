@@ -12,11 +12,7 @@ BackgroundLayer::BackgroundLayer(Room *room, const std::filesystem::path& imgPat
 
 void BackgroundLayer::draw(sf::RenderTarget &target, float interp)
 {
-#ifdef SFML3
     const auto textureSize = sprite->getTexture().getSize();
-#else
-    const auto textureSize = sprite->getTexture()->getSize();
-#endif
     const float camX = MathHelper::lerp(room->prevCamX, room->camX, interp);
     const float camY = MathHelper::lerp(room->prevCamY, room->camY, interp);
     const float width = static_cast<float>(textureSize.x);
