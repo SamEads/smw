@@ -7,6 +7,7 @@
 #include "backgroundlayer.h"
 #include "player.h"
 #include "qblock.h"
+#include "sineqblock.h"
 #include <iostream>
 Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
 {
@@ -94,7 +95,7 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
         {
             for (auto& objectData : layerData["objects"])
             {
-                auto collision = create<Collision>();
+                auto collision = create<Solid>(this);
                 collision->x = objectData["x"];
                 collision->y = objectData["y"];
                 collision->width = objectData.value("width", 0.0f);
@@ -148,6 +149,10 @@ Level::Level(const std::filesystem::path& mapPath, Game* game) : Room(game)
                 if (objectType == "qblock" || objectName == "qblock" || objectName == "QBlock")
                 {
                     create<QBlock>(this, objectData["x"].get<float>(), objectData["y"].get<float>());
+                }
+                else if (objectType == "sineqblock" || objectName == "sineqblock" || objectName == "SineQBlock")
+                {
+                    create<SineQBlock>(this, objectData["x"].get<float>(), objectData["y"].get<float>());
                 }
             }
         }

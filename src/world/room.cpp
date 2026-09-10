@@ -13,50 +13,18 @@ Room::Room(Game* game) : game(game)
     levelTime = 300;
 }
 
-std::vector<const Collision*> Room::queryCollisions(const sf::FloatRect& area) const
+std::vector<const Solid*> Room::queryCollisions(const sf::FloatRect& area) const
 {
-    std::vector<const Collision*> results;
+    std::vector<const Solid*> results;
     for (const auto& o : objects)
     {
-        if (o->getCategory() != ObjectCategory::COLLISION)
+        const Solid* solid = dynamic_cast<const Solid*>(o.get());
+        if (!solid)
             continue;
-        Collision* collision = (Collision*)o.get();
+
         sf::FloatRect bounds;
-        if (collision->points.empty())
-        {
-            bounds = sf::FloatRect(
-                { collision->x, collision->y },
-                { collision->width, collision->height });
-        }
-        else
-        {
-            float minX = collision->points.front().x;
-            float minY = collision->points.front().y;
-            float maxX = minX;
-            float maxY = minY;
-            for (const auto& point : collision->points)
-            {
-                minX = std::min(minX, point.x);
-                minY = std::min(minY, point.y);
-                maxX = std::max(maxX, point.x);
-                maxY = std::max(maxY, point.y);
-            }
-            bounds = sf::FloatRect({ minX, minY }, { maxX - minX, maxY - minY });
-            if (bounds.size.x == 0.0f)
-            {
-                bounds.position.x -= 0.5f;
-                bounds.size.x = 1.0f;
-            }
-            if (bounds.size.y == 0.0f)
-            {
-                bounds.position.y -= 0.5f;
-                bounds.size.y = 1.0f;
-            }
-        }
-
-        if (bounds.findIntersection(area).has_value())
-            results.push_back(collision);
-
+        if (solid->getWorldBounds(bounds) && bounds.findIntersection(area).has_value())
+            results.push_back(solid);
     }
     return results;
 }
@@ -100,7 +68,6 @@ void Room::step()
 {
     prevCamX = camX;
     prevCamY = camY;
-    float lastcx = internalCamX;
     qblockAnimationFrame += 0.125f;
     if (qblockAnimationFrame >= 4.0f)
         qblockAnimationFrame -= 4.0f;
@@ -144,6 +111,10 @@ void Room::step()
         }
     }
     queuedFree.clear();
+
+    internalCamX = player->x;
+    internalCamY = player->y;
+    /*
     // Player moved far enough left to flip the camera bias.
     if (player->x < internalCamX - 40.0f)
         x_side = -1;
@@ -152,6 +123,7 @@ void Room::step()
         x_side = 1;
 
     constexpr float followDist = 14.0f;
+    bool snappedToTarget = false;
     if (x_side == 1 && player->x > internalCamX - followDist)
     {
         float spdmod = 0.0f;
@@ -162,10 +134,11 @@ void Room::step()
         if (player->x > internalCamX - (followDist - 2.0f - spdmod))
             internalCamX += 2.0f + player->hspd;
         else
+        {
             internalCamX = player->x + followDist;
+            snappedToTarget = true;
+        }
 
-        if (player->hspd == 0.0f)
-            internalCamX += player->x - player->xPrevious;
     }
     else
     {
@@ -179,12 +152,22 @@ void Room::step()
             if (player->x < internalCamX + (followDist - 2.0f - spdmod))
                 internalCamX -= 2.0f - player->hspd;
             else
+            {
                 internalCamX = player->x - followDist;
+                snappedToTarget = true;
+            }
         }
-
-        if (player->hspd == 0.0f)
-            internalCamX += player->x - player->xPrevious;
     }
+
+    // The snap above is an absolute recompute from the player's current,
+    // already-fully-updated position, so it already accounts for any
+    // movement that didn't come from hspd (e.g. being carried by a moving
+    // solid). Mirroring player->x - player->xPrevious on top of it
+    // double-counts that movement - since this and the plain snap alternate
+    // tick to tick while riding something slow, that overshoot shows up as
+    // a persistent back-and-forth camera jitter, not a one-time error.
+    if (!snappedToTarget && player->hspd == 0.0f)
+        internalCamX += player->x - player->xPrevious;
 
     if ((player->isOnFloor() && player->vspd == 0.0f) ||
         (player->jumping && player->isPMeterFull()))
@@ -218,7 +201,7 @@ void Room::step()
             internalCamY = player->y - 32.0f;
         }
     }
-
+    */
 
     camX = MathHelper::clamp(internalCamX - std::floorf(GAME_WIDTH / 2.0f), 0, width - GAME_WIDTH);
     camY = MathHelper::clamp(internalCamY - std::floorf(GAME_HEIGHT / 2.0f), 0, height - GAME_HEIGHT);

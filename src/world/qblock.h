@@ -1,20 +1,20 @@
 #pragma once
 
-#include "gameobject.h"
+#include "solid.h"
 
-class Collision;
-
-class QBlock : public GameObject
+class QBlock : public Solid
 {
 public:
     QBlock(Room* room, float x, float y);
 
     void step() override;
     void draw(sf::RenderTarget& target, float interp) override;
-    bool getWorldBounds(sf::FloatRect& bounds) const override;
+    void onHit(HitSide side, PhysicsEntity* entity) override;
     ObjectCategory getCategory() const override { return ObjectCategory::GIZMO; }
 
-private:
-    bool wasHit = false;
-    Collision* collision;
+protected:
+    static constexpr int BOUNCE_TOTAL_FRAMES = 8;
+
+    int bounceFramesRemaining = 0;
+    float bounceOffset = 0.0f;
 };

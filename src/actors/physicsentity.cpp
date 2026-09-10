@@ -1,5 +1,6 @@
 #include "physicsentity.h"
 #include "room.h"
+#include "solid.h"
 
 #include <algorithm>
 #include <cmath>
@@ -20,7 +21,7 @@ namespace
         return true;
     }
 
-    size_t edgeCount(const Collision& collision)
+    size_t edgeCount(const Solid& collision)
     {
         return collision.shape == CollisionShape::Polygon ? collision.points.size() :
             collision.points.size() - 1;
@@ -60,13 +61,15 @@ void PhysicsEntity::move()
     onFloor = false;
     atWall = false;
     isOnSlopeSurface = false;
+    groundVelocity = { 0.0f, 0.0f };
 
     // X COLLISIONS
     x += hspd;
     for (auto& o : room->objects)
     {
-        if (o->getCategory() != ObjectCategory::COLLISION) continue;
-        Collision& c = *(Collision*)o.get();
+        Solid* solidPtr = dynamic_cast<Solid*>(o.get());
+        if (!solidPtr || !solidPtr->collidable) continue;
+        Solid& c = *solidPtr;
         if (c.shape != CollisionShape::Rectangle)
         {
             if (c.shape == CollisionShape::Polygon)
@@ -91,12 +94,14 @@ void PhysicsEntity::move()
                         x = first.x - collider.position.x - collider.size.x;
                         hspd = 0.0f;
                         setAtWall();
+                        c.onHit(HitSide::Left, this);
                     }
                     else if (hspd < 0.0f && previousLeft >= first.x && currentLeft < first.x)
                     {
                         x = first.x - collider.position.x;
                         hspd = 0.0f;
                         setAtWall();
+                        c.onHit(HitSide::Right, this);
                     }
                 }
             }
@@ -127,6 +132,7 @@ void PhysicsEntity::move()
                 x = c.x - collider.position.x - collider.size.x;
                 hspd = 0.0f;
                 setAtWall();
+                c.onHit(HitSide::Left, this);
             }
         }
         else if (hspd < 0.0f && previousLeft >= c.x + c.width && currentLeft < c.x + c.width)
@@ -141,6 +147,7 @@ void PhysicsEntity::move()
                 x = c.x + c.width - collider.position.x;
                 hspd = 0.0f;
                 setAtWall();
+                c.onHit(HitSide::Right, this);
             }
         }
     }
@@ -149,8 +156,9 @@ void PhysicsEntity::move()
     y += vspd;
     for (auto& o : room->objects)
     {
-        if (o->getCategory() != ObjectCategory::COLLISION) continue;
-        Collision& c = *(Collision*)o.get();
+        Solid* solidPtr = dynamic_cast<Solid*>(o.get());
+        if (!solidPtr || !solidPtr->collidable) continue;
+        Solid& c = *solidPtr;
         if (c.shape != CollisionShape::Rectangle)
         {
             if (c.points.size() >= 2)
@@ -228,6 +236,7 @@ void PhysicsEntity::move()
                     y = currentFloor - collider.position.y - collider.size.y;
                     vspd = 0.0f;
                     onFloor = true;
+                    c.onHit(HitSide::Above, this);
                     for (size_t index = 0; index < edgeCount(c); ++index)
                     {
                         const auto& first = c.points[index];
@@ -254,6 +263,7 @@ void PhysicsEntity::move()
                     y = currentCeiling - collider.position.y;
                     vspd = 0.0f;
                     onCeilingHit();
+                    c.onHit(HitSide::Below, this);
                 }
             }
             continue;
@@ -284,6 +294,7 @@ void PhysicsEntity::move()
                 {
                     y -= hit->size.y;
                     onFloor = true;
+                    c.onHit(HitSide::Above, this);
                 }
                 if (vspd >= 0.0f)
                     vspd = 0.0f;
@@ -295,6 +306,7 @@ void PhysicsEntity::move()
                 y -= hit->size.y;
                 onFloor = true;
                 vspd = 0.0f;
+                c.onHit(HitSide::Above, this);
             }
             else if (vspd < 0.0f &&
                 previousY + collider.position.y >= c.y + c.height &&
@@ -304,6 +316,7 @@ void PhysicsEntity::move()
                 y += hit->size.y;
                 vspd = 0.0f;
                 onCeilingHit();
+                c.onHit(HitSide::Below, this);
             }
         }
     }
@@ -315,12 +328,12 @@ void PhysicsEntity::move()
         float supportY = 0.0f;
         float supportDistance = 0.0f;
         bool foundSupport = false;
+        Solid* supportSolid = nullptr;
 
         for (auto& o : room->objects)
         {
-            if (o->getCategory() != ObjectCategory::COLLISION) continue;
-
-            Collision* c = (Collision*)o.get();
+            Solid* c = dynamic_cast<Solid*>(o.get());
+            if (!c || !c->collidable) continue;
 
             if (c->shape == CollisionShape::Rectangle)
             {
@@ -333,6 +346,7 @@ void PhysicsEntity::move()
                     foundSupport = true;
                     supportDistance = distance;
                     supportY = c->y;
+                    supportSolid = c;
                 }
                 continue;
             }
@@ -351,6 +365,7 @@ void PhysicsEntity::move()
                     foundSupport = true;
                     supportDistance = distance;
                     supportY = candidateY;
+                    supportSolid = c;
                 }
             }
         }
@@ -360,6 +375,7 @@ void PhysicsEntity::move()
             y = supportY - collider.position.y - collider.size.y;
             vspd = 0.0f;
             onFloor = true;
+            if (supportSolid) supportSolid->onHit(HitSide::Above, this);
         }
     }
 }

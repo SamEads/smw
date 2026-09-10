@@ -114,7 +114,6 @@ void Player::draw(sf::RenderTarget &target, float interp)
 {
     float xx = MathHelper::lerp(xPrevious, x, interp);
     float yy = MathHelper::lerp(yPrevious, y, interp);
-    if (xPrevious != x) std::cout << xPrevious << "," << x << "\n";
     sprite.draw(target, std::floorf(xx), std::floorf(yy) + 1.0f);
 }
 

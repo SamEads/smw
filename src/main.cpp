@@ -14,13 +14,13 @@
 int main()
 {
 	// bool _soundInitResult = sf::PlaybackDevice::setDeviceToDefault();
-	sf::RenderWindow window(sf::VideoMode({ 640, 480 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER");
+	sf::RenderWindow window(sf::VideoMode({ 256 * 4, 224 * 4 }), "SUPER FUCKING MARIO WORLD!!!!!!!!!!!!! TRANSGENDER");
 	window.setVerticalSyncEnabled(true);
 
 	sf::RenderTexture t({ GAME_WIDTH, GAME_HEIGHT });
 
 	Game game;
-	game.timer.setTickRate(60);
+	// game.timer.setTickRate(60);
 	Level level(GetAssetDirectory("levels/level1.tmj"), &game);
 
 	Font::SMALL.initialize("sprites/hud/small_font.png", 8, 8,
@@ -62,17 +62,18 @@ int main()
 				window.close();
 		}
 
-		game.timer.update();
+		//game.timer.update();
         
-        const int ticks = game.timer.getTickCount();
-		for (int i = 0; i < ticks; ++i)
+        //const int ticks = game.timer.getTickCount();
+		//for (int i = 0; i < ticks; ++i)
 		{
 			Keys::update(window.hasFocus());
 			level.step();
 		}
 
-        float interp = game.timer.getAlpha();
-		if (interp < 0.0f || interp > 1.0f) std::cout << interp << "\n";
+        //float interp = game.timer.getAlpha();
+		//if (interp < 0.0f || interp > 1.0f) std::cout << interp << "\n";
+		float interp = 1;
 
 		t.clear();
 		level.draw(t, interp);

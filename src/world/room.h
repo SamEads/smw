@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "tilemaplayer.h"
-#include "collision.h"
+#include "solid.h"
 #include "gameobject.h"
 #include "game.h"
 
@@ -17,7 +17,6 @@ public:
     explicit Room(Game* game = nullptr);
 
 public:
-	// std::vector<Collision> collisions;
     std::vector<std::unique_ptr<GameObject>> objects;
 
     float camX = 0, camY = 0;
@@ -36,7 +35,7 @@ public:
 public:
     void step();
     void draw(sf::RenderTarget& target, float interp);
-    std::vector<const Collision*> queryCollisions(const sf::FloatRect& area) const;
+    std::vector<const Solid*> queryCollisions(const sf::FloatRect& area) const;
     std::vector<GameObject*> queryObjects(const sf::FloatRect& area,
         const GameObject* ignore = nullptr) const;
     std::vector<GameObject*> queryObjects(const sf::FloatRect& area,

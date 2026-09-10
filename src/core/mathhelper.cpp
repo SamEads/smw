@@ -53,5 +53,8 @@ float MathHelper::randomFloat(float min, float max)
 
 float MathHelper::lerp(float a, float b, float alpha)
 {
+    if (alpha >= 1.0f) return a;
+    if (alpha <= 0) return b;
     return (1.0f - alpha) * a + alpha * b;
 }
+
